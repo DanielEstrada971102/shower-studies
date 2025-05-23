@@ -9,3 +9,5 @@
 test/*.svg
 *inspections*
 *.tar.gz*
+*.txt
+*.dat
