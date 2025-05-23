@@ -1,0 +1,11 @@
+*pyc
+*__pycache__
+*env
+*.egg-info*
+*main.sh*
+*ROOT*
+*.vscode*
+*_build*
+test/*.svg
+*inspections*
+*.tar.gz*
