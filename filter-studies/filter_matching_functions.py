@@ -24,7 +24,7 @@ def ray_seg_matching(p, d, a, b):
     denom = np.linalg.det(np.array([v1, d]).T)
     if denom == 0:
         # The ray and the segment are parallel
-        print("Not solution")
+        # print("Not solution")
         return False
     u = np.linalg.det(np.array([v2, d]).T) / denom
     t = np.linalg.det(np.array([v1, v2]).T) / denom
