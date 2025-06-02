@@ -91,7 +91,7 @@ def _dump_showers(event: Event, outpath: str, tag: str=""):
                 )
 
 def main():
-    inpath = os.path.join("/mnt/c/Users/estradadaniel/cernbox/ZprimeToMuMu_M-6000_TuneCP5_14TeV-pythia8/ZprimeToMuMu_M-6000_PU200/250312_131631/0000/")
+    inpath = os.path.join("./ntuple4aggreement.root")
     outfolder = "."
     RUN_CONFIG.change_config_file(config_path="./run_config.yaml")
 
@@ -127,8 +127,8 @@ def main():
             if ev.index >= total:
                 break
 
-            _dump_digis(ev, outpath=os.path.join(outfolder, "digis_fpga_dumper_results"), tag=tag)
-            _dump_showers(ev, outpath=os.path.join(outfolder, "showers_dumper_results"), tag=tag)
+            _dump_digis(ev, outpath=os.path.join(outfolder, "digis_fpga_dumper_results"), tag="")	
+            _dump_showers(ev, outpath=os.path.join(outfolder, "showers_dumper_results"), tag="")
 
     color_msg(f"Done!", color="green")
 
