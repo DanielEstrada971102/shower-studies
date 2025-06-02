@@ -1,21 +1,28 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from pandas import DataFrame
+from matplotlib import colors
 from matplotlib.patches import Polygon
-from mpldts.geometry.transforms import TransformManager
-from mpldts.geometry import Station
-from mpldts.patches import DTStationPatch
+from mpldts.geometry import Station, AMDTSegments
+from mpldts.patches import DTStationPatch, AMDTSegmentsPatch
 from dtpr.base import NTuple
 from dtpr.utils.functions import color_msg, get_unique_locs
 from dtpr.utils.config import RUN_CONFIG
-from filter_matching_functions import  ray_rect_matching
-
+from filter_matching_functions import  ray_rect_matching, ray_seg_matching
 
 # ----------- Auxiliary functions and variables ---------------
 cell_patch_kwargs = {"facecolor": "none", "edgecolor": "none"}
+cmap = colors.ListedColormap(["k", "r"]) 
+cmap.set_under('none')  # Set color for values below the minimum
+segs_norm = colors.BoundaryNorm(boundaries=[0, 1, 2], ncolors=2, clip=True)
+
+segs_kwargs = {
+    "cmap": cmap,
+    "norm": segs_norm,
+}
 
 _built_stations = {}
 _built_stations_patches = {}
-_built_transform_managers = {}
 
 def build_station(wh, sc, st):
     """Build or retrieve a Station object for given wheel, sector, station."""
@@ -41,6 +48,12 @@ def plot_rectangle(ax, rect, color='r', alpha=0.2):
     ax.add_patch(poly)
     return poly
 
+def plot_shower_segment(ax, segment, color='g'):
+    """Plot a segment representing the shower on the given axes."""
+    x1, y1, _ = segment[0]
+    x2, y2, _ = segment[1]
+    ax.plot([x1, x2], [y1, y2], color=color, linewidth=3)
+
 def debug_print(msg, debug):
     if debug:
         print(msg)
@@ -55,48 +68,24 @@ def should_analyze_event(debug):
 
 def get_p_d_from_tp(tp, station):
     """Get the position and direction of a trigger primitive in CMS coordinates."""
-    # built/get the trigger primitive transform manager, since TPs ref frame is in the middle of the 
-    # super layers, we need to build the transformation to put in the Station frame
-    if (station.wheel, station.sector, station.number) in _built_transform_managers:
-        _tps_transform_manager = _built_transform_managers[(station.wheel, station.sector, station.number)]
-    else:
-        _tps_transform_manager = TransformManager("TPsFrame")
-        _tps_transform_manager.add("Station", "CMS", transformation_matrix=station.transformer.get_transformation("Station", "CMS"))
 
-        mid_SLs_center = (np.array(station.super_layer(1).local_center) + np.array(station.super_layer(3).local_center)) / 2
+    _am_tp = AMDTSegments( # this class encapsulates the TPs reference frame transformations
+        parent=station, 
+        segs_info={
+            "index": tp.index,
+            "sl": tp.sl,
+            "angle": getattr(tp, "dirLoc_phi"),
+            "position": getattr(tp, "posLoc_x"),
+        }
+    )[0]
 
-        TStSLsC = mid_SLs_center # tranlation vector to move the center of the super layers to the origin in Station frame
-
-        _tps_transform_manager.add("TPsFrame", "Station", translation_vector=TStSLsC)
-        _built_transform_managers[(station.wheel, station.sector, station.number)] = _tps_transform_manager
-
-
-    if tp.quality >= 6:
-        # get the middle z in Station cords
-        _local_tp_z = _tps_transform_manager.transform([0, 0, 0], from_frame="TPsFrame", to_frame="Station")[2] 
-    else:
-        # get the z coordinate of the super layer
-        _local_tp_z = station.super_layer(tp.sl).local_center[2] 
-
-    # get the x coordinate of the trigger primitive in Station cords
-    _local_tp_x = _tps_transform_manager.transform([tp.posLoc_x, 0, 0], from_frame="TPsFrame", to_frame="Station")[0] 
-
-    _local_tp_center = np.array([_local_tp_x, 0, _local_tp_z])
-    # print(f"TP center in local cords: {_local_tp_center}")
-    tp_center = _tps_transform_manager.transform(_local_tp_center, "Station", "CMS") # transform to CMS frame
-    # print(f"TP center in CMS cords: {tp_center} -> {station.global_center}")
-
-    _dx = -1* np.sin(np.radians(tp.psi)) # tal vez en lugar de usar psi, deberia usar dirLoc_phi?
-    _dz = np.cos(np.radians(tp.psi))
-    _local_tp_dir = np.array([_dx, 0, _dz]) # direction vector in local cords
-    # print(f"TP direction in local cords: {_local_tp_dir}")
-    tp_dir = _tps_transform_manager.transform(_local_tp_dir, "TPsFrame", "CMS")
-    tp_dir = tp_dir / np.linalg.norm(tp_dir) # normalize the direction vector
-    # print(f"TP direction in CMS cords: {tp_dir}")
+    tp_center = _am_tp.global_center
+    tp_dir = _am_tp.global_direction
 
     return tp_center, tp_dir
 
-def get_rectangle(dt, shower):
+
+def get_shower_rectangle(dt, shower, version=1):
     """
     Get the rectangle (polygon) representing the shower in CMS coordinates. Shower is not used
     at the moment, but in theory it should be used to define the size of the rectangle.
@@ -121,10 +110,27 @@ def get_rectangle(dt, shower):
     rect = dt.transformer.transform(_rect, from_frame="Station", to_frame="CMS")
     return rect
 
-def _analyzer(ev, showers, tps, debug=False, plot=False):
-    """Analyze showers and TPs for a given event, optionally plotting results."""
-    _checked_stations = set()
+def get_shower_segment(dt, shower, version=1):
+    """
+    Get the segment representing the shower in CMS coordinates.
+    """
+    if version == 1: # compute using the wires profile
+        # dump profile to wires numbers
+        wires = [wn for wn, nh in enumerate(shower.wires_profile) for _ in range(nh)]
+        q75, q25 = map(int, np.percentile(wires, [75, 25]))
+        # use only the wires in the range [q25, q75]
+        wires = sorted([wire for wire in wires if wire >= q25 and wire <= q75])
 
+        first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(wires[0])
+        last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(wires[-1])
+    if version == 2: # compute using max and min wire numbers
+        first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.min_wire)
+        last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.max_wire)
+
+    return np.array([first_shower_cell.global_center, last_shower_cell.global_center]) # a, b
+
+def _analyzer(showers, tps, debug=False, plot=False):
+    """Analyze showers and TPs for a given event, optionally plotting results."""
     if plot:
         _built_stations_patches.clear()
         fig, ax = plt.subplots(1, 1, figsize=(6, 6))
@@ -132,11 +138,6 @@ def _analyzer(ev, showers, tps, debug=False, plot=False):
 
     for shower in showers:
         wh, sc, st = shower.wh, shower.sc, shower.st
-        # to avoid analyzing the same station multiple times
-        if (wh, sc, st) in _checked_stations:
-            debug_print(color_msg(f"Already analyzed station {wh} {sc} {st}", color="red", return_str=True), debug)
-            continue
-        _checked_stations.add((wh, sc, st))
 
         if plot:
             make_plot = True
@@ -145,12 +146,15 @@ def _analyzer(ev, showers, tps, debug=False, plot=False):
         _dt = build_station(wh, sc, st)
 
         # get the rectangle for the shower
-        _rect = get_rectangle(_dt, shower)
+        # _rect = get_shower_rectangle(_dt, shower)
+        _shower_seg = get_shower_segment(_dt, shower, version=2)
 
         if plot:
-            plot_rectangle(ax, _rect)
+            # plot_rectangle(ax, _rect)
+            plot_shower_segment(ax, _shower_seg)
             build_station_patch(_dt, ax)
 
+        _tps_to_plot = []
         for _tp in tps:
             # get the trigger primitive station
             wh, sc, st = _tp.wh, _tp.sc, _tp.st
@@ -160,19 +164,33 @@ def _analyzer(ev, showers, tps, debug=False, plot=False):
 
             tp_center, tp_dir = get_p_d_from_tp(_tp, _seg_dt)
             tp_color = "k"
-            # match the trigger primitive with the rectangle
-            if ray_rect_matching(tp_center[:-1], tp_dir[:-1], _rect[:, :-1]):
-                if getattr(_tp, "matched_showers", None) is not None:
+            
+            # if ray_rect_matching(tp_center[:-1], tp_dir[:-1], _rect[:, :-1]): # <-- match the trigger primitive with the rectangle
+            if ray_seg_matching(tp_center[:-1], tp_dir[:-1], _shower_seg[0, :-1], _shower_seg[1, :-1]): # <-- match the trigger primitive with segment
+                if _tp not in shower.matched_tps:
+                    shower.matched_tps.append(_tp)
+                if shower not in _tp.matched_showers:
                     _tp.matched_showers.append(shower)
-                else:
-                    setattr(_tp, "matched_showers", [shower])
                 debug_print(color_msg(f"TP: {_tp.index} match with shower: {shower.index}", color="purple", return_str=True), debug)
                 tp_color = "r"
             if plot:
-                ax.arrow(*tp_center[:-1], *(20*tp_dir[:-1]), color=tp_color)
-                ax.annotate(f"TP{_tp.index}", xy=tp_center[:-1], textcoords="offset points", xytext=(0, 10), ha='center', color=tp_color)
+                _tps_to_plot.append({
+                    "wh": _tp.wh,
+                    "sc": _tp.sc,
+                    "st": _tp.st,
+                    "index": _tp.index,
+                    "sl": _tp.sl,
+                    "angle": getattr(_tp, "dirLoc_phi"),
+                    "position": getattr(_tp, "posLoc_x"),
+                    "matched": 0 if tp_color == "k" else 1,
+                })
 
     if plot and make_plot: 
+        for (wh, sc, st), _tps_info in DataFrame(_tps_to_plot).groupby(["wh", "sc", "st"]):
+            _segs = AMDTSegments(parent=build_station(wh, sc, st), segs_info=_tps_info[["index", "sl", "angle", "position", "matched"]])
+            _segs_patch = AMDTSegmentsPatch(
+                segments=_segs, axes=ax, faceview="phi", local=False, vmap="matched", segs_kwargs=segs_kwargs
+            )
         ax.set_xlim(-800, 800)
         ax.set_ylim(-800, 800)
         plt.show()
@@ -221,7 +239,7 @@ def event_divider(ev, only4true_showers=False, debug=False, plot=False):
         if not should_analyze_event(debug):
             continue
         debug_print(color_msg("Analyzing...", color="yellow", return_str=True), debug)
-        _analyzer(ev, showers, tps, debug, plot)
+        _analyzer(showers, tps, debug, plot)
 
 def barrel_filter_analyzer(ev, only4true_showers=False, debug=False, plot=False):
     """Run the barrel filter analyzer for a single event."""
@@ -244,7 +262,7 @@ def main():
     RUN_CONFIG.change_config_file("run_config.yaml")
     ntuple = NTuple("../../ZprimeToMuMu_M-6000_TuneCP5_14TeV-pythia8/ZprimeToMuMu_M-6000_PU200/250312_131631/0000/DTDPGNtuple_12_4_2_Phase2Concentrator_thr6_Simulation_99.root")
     for ev in ntuple.events:
-        barrel_filter_analyzer(ev)#, only4true_showers=True, debug=True, plot=True)
+        barrel_filter_analyzer(ev, only4true_showers=True, debug=True, plot=True)
         if any(tp for tp in ev.tps if getattr(tp, "matched_showers", None)):
             print(f"Event {ev.index} has matched TPs with showers")
 

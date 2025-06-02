@@ -71,5 +71,20 @@ for st in range(1, 5):
             "histoNum" : r.TH1D(f"matched_tps_MB{st}_AM_num", r';Wheel;', 5, -2.5 , 2.5),
             "func"     : lambda reader: [tp.wh for tp in reader.tps if tp.st == st and len(getattr(tp, "matched_showers", []))>0],
             "numdef"   : lambda reader: [tp_match_true_shower(tp) for tp in reader.tps if tp.st == st and len(getattr(tp, "matched_showers", []))>0],
+        },
+        f"at_least_oneTP_for_real_shower_MB{st}": {
+            "type": "eff",
+            "histoDen": r.TH1D(f"at_least_oneTP_for_real_shower_MB{st}_AM_total", r';Wheel;', 5, -2.5, 2.5),
+            "histoNum": r.TH1D(f"at_least_oneTP_for_real_shower_MB{st}_AM_num", r';Wheel;', 5, -2.5, 2.5),
+            "func": lambda reader: [shower.wh for shower in reader.filter_particles("fwshowers", st = st, is_true_shower = True)],
+            "numdef": lambda reader: [any(shower in getattr(tp, "matched_showers", []) for tp in reader.tps if tp.wh == shower.wh) for shower in reader.filter_particles("fwshowers", st = st, is_true_shower = True)],
         }
     })
+
+histos.update({
+    "tps_x_MB1": {
+        "type": "distribution",
+        "histo": r.TH1D("tps_x_MB1", r';x [cm];\# AM TPs', 100, -250, 250),
+        "func": lambda reader: [tp.posLoc_x for tp in reader.tps if tp.st == 1],
+    },
+})

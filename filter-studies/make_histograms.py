@@ -58,6 +58,19 @@ def main():
         maxY=50,
     )
 
+    rpf.make_plots(
+        info_for_plots=[{ 
+            "file_name": f"{folder}/histograms/histograms_1.root",
+            "histos_names": "at_least_oneTP_for_real_shower_MBX_AM",
+            "legends":  "#frac{real showers that match with at least one AM TP}{real showers}",
+        }],
+        output_name = "matched_showers_ratio",
+        outfolder=folder + "plots/",
+        legend_pos=(0.3, 0.78, 0.34, 0.9),
+        titleY="",
+        # logy=True,
+    )
+
     color_msg("Done!", color="green")
 
 if __name__ == "__main__":

@@ -68,10 +68,11 @@ particle_types:
         expr: phi / phires_conv + 3.14159 / 6 * (sc - 1)
       phiB:
         expr: phiB / phires_conv + 3.14159 / 6 * (sc - 1)
-      psi:
-        expr: phiB + phi
+      dirLoc_phi:
+        expr: dirLoc_phi * -1 # Correct direction according to the plots... It is necessary to check
       matches: []
       matches_with_segment: False
+      matched_showers: []
     filter: 'p.quality >= 0'
   fwshowers:
     amount: 'ph2Shower_station'
@@ -87,6 +88,8 @@ particle_types:
       avg_pos: 'ph2Shower_avg_pos'
       avg_time: 'ph2Shower_avg_time'
       wires_profile: 'ph2Shower_wires_profile'
+    attributes:
+      matched_tps: []
   simhits:
     amount: 'simHit_nSimHits'
     branches:
@@ -154,6 +157,11 @@ histo_names:
   - matched_tps_MB2
   - matched_tps_MB3
   - matched_tps_MB4
+  # - at_least_oneTP_for_real_shower_MB1
+  # - at_least_oneTP_for_real_shower_MB2
+  # - at_least_oneTP_for_real_shower_MB3
+  # - at_least_oneTP_for_real_shower_MB4
+  # - tps_x_MB1
 # ----------------------------- configuration for event inspector ---------------------------------#
 inspector-functions:
   # define the functions to be used in the event inspector in the format:
