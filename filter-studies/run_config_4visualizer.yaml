@@ -161,46 +161,38 @@ ntuple_preprocessors:
       debug: False
   fw_shower_analyzer:
     src: "dtpr.utils.shower_functions.analyze_fwshowers"
-  filter_matching:
-    src: "filter_main.barrel_filter_analyzer"
-    kwargs:
-      only4true_showers: False
-# ================= available selectors - dtntuple ================= #
-ntuple_selectors:
-  baseline:
-    src: "dtpr.utils.filters.base_filters.baseline"
 
-# -------------------------------- configuration for histograms -----------------------------------#
-histo_sources:
-  - barrel_filter_histograms
+# ------------------------------- configuration for dt plots  -------------------------------------#
+dt_plots_configs:
+  mplhep-style: 'CMS'         # Style to use for the plots
 
-histo_names:
-  - tps_q<6_MB1
-  - tps_q<6_MB2
-  - tps_q<6_MB3
-  - tps_q<6_MB4
-  - tps_q>6_MB1
-  - tps_q>6_MB2
-  - tps_q>6_MB3
-  - tps_q>6_MB4
-  - showers_MB1
-  - showers_MB2
-  - showers_MB3
-  - showers_MB4
-  - showers_true_MB1
-  - showers_true_MB2
-  - showers_true_MB3
-  - showers_true_MB4
-  - tps_match_showers_MB1
-  - tps_match_showers_MB2
-  - tps_match_showers_MB3
-  - tps_match_showers_MB4
-  - matched_tps_MB1
-  - matched_tps_MB2
-  - matched_tps_MB3
-  - matched_tps_MB4
-  # - at_least_oneTP_for_real_shower_MB1
-  # - at_least_oneTP_for_real_shower_MB2
-  # - at_least_oneTP_for_real_shower_MB3
-  # - at_least_oneTP_for_real_shower_MB4
-  # - tps_x_MB1
+  figure-configs: 
+    figure.dpi: 100             # Dots per inch (resolution)
+    axes.titlesize: 'small'     # Axes title size
+    axes.labelsize: 'x-small'    # Axes label size
+    xtick.labelsize: 'x-small'    # X-axis tick label size
+    ytick.labelsize: 'x-small'    # Y-axis tick label size
+    legend.fontsize: 'small'   # Legend font size
+
+  dt-cell-info:
+    particle_type: 'digis'      # Particle type to use
+    cmap_var: 'time'            # Variable to use for the colormap
+
+  cmap-configs:
+    cmap: 'viridis'             # Colormap to use
+    cmap_under: 'none'          # Color for values under vmin
+    norm:
+      class: 'matplotlib.colors.Normalize'  # Normalization class
+      vmin: 299                             # Minimum value for normalization
+      vmax: 1000                            # Maximum value for normalization
+
+  # DT bounds and cells are matplotlib.patches.Rectangle objects
+  bounds-kwargs:
+    facecolor: ["lightgray", "lightyellow", "lightpink", "lightblue"]   # Color of the rectangle [MB, SL1, SL3, SL2]
+    edgecolor: "k"                                                      # Color of the edge
+    alpha: 0.3                                                          # Transparency of the rectangle
+    linewidth: 0.5                                                      # Width of the edge
+
+  cells-kwargs:
+    edgecolor: "k"              # Color of the edge
+    linewidth: 0.025              # Width of the edge
