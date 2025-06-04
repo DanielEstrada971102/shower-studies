@@ -9,5 +9,6 @@
 test/*.svg
 *inspections*
 *.tar.gz*
-*.txt
 *.dat
+*.txt
+!requirements.txt
