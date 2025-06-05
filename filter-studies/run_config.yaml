@@ -165,6 +165,10 @@ ntuple_preprocessors:
     src: "filter_main.barrel_filter_analyzer"
     kwargs:
       only4true_showers: False
+  showers-classifier:
+    src: "showers_classification.highpt_showers_identifier"
+    kwargs:
+      highpt_threshold: 80
 # ================= available selectors - dtntuple ================= #
 ntuple_selectors:
   baseline:
