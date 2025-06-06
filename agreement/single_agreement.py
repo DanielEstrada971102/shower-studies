@@ -5,11 +5,14 @@ import re
 from numbers import Number
 from collections import deque
 from functions import *
+import sys
+import os
 
-wh = -2
+wh = 1
 sc = 10
 st = 1
-base_dir = "showers-data/"
+
+base_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "showers-data2/")
 
 cmssw_hits_in = read_hits_files(f"{base_dir}Input_CMSSW/digis_IN_FPGA/digis_wh{wh}_sc{sc}_st{st}.txt", file_type="emu")
 fpga_hits_in = pd.concat(
@@ -75,7 +78,7 @@ for ax in axs:
     ax.legend()
 
 plt.tight_layout()
-plt.show()
+plt.show(block=False)
 
 columns = ['sl', 'bx', 'tdc', 'l', 'w', 'id', 'wh', 'sc', 'st']
 lost_hits = get_missing_hits(cmssw_hits_in, fpga_hits_in, columns)
