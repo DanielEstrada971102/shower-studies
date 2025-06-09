@@ -20,6 +20,7 @@ def match_shower_genmuons(shower, highpt_threshold=100):
             gm.matched_showers = [shower]
 
     shower.is_highpt_shower = True if any(gm.pt > highpt_threshold for gm in matched_genmuons) else False
+    shower.comes_from_showered_genmuon = any(gm.showered for gm in matched_genmuons)
 
 # ----- This is to be used as preprocesor function in the config file -----
 
@@ -155,11 +156,12 @@ def report_results(results):
     )
     ax.set(aspect="equal", title='Showers Classification')
     plt.tight_layout()
-    fig.savefig("showers_classification_pie_chart_80PTthr.svg", dpi=300)
+    fig.savefig("showers_classification_pie_chart_1000PTthr.svg", dpi=300)
 
 def main():
     RUN_CONFIG.change_config_file("./run_config.yaml")
-    ntuple = NTuple("/lustrefs/hdd_pool_dir/L1T/Filter/ThresholdScan_Zprime_DY/last/ZprimeToMuMu_M-6000_PU200/250312_131631/0000")
+    # ntuple = NTuple("/lustrefs/hdd_pool_dir/L1T/Filter/ThresholdScan_Zprime_DY/last/ZprimeToMuMu_M-6000_PU200/250312_131631/0000")
+    ntuple = NTuple("../../ZprimeToMuMu_M-6000_TuneCP5_14TeV-pythia8/ZprimeToMuMu_M-6000_PU200/250312_131631/0000")
     total = len(ntuple.events)
     # total = 10
     results = []

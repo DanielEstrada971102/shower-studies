@@ -77,6 +77,21 @@ def make_plot(cmssw_hits_in, fpga_hits_in, cmssw_showers, fpga_showers, save=Fal
     else:
         plt.show(block=False)
 
+def stimate_agreements(fpga_showers, cmssw_showers, cmssw_hits_in, fpga_hits_in , diff_hits_tolerance=2, columns=['sl', 'bx', 'tdc', 'l', 'w', 'id', 'wh', 'sc', 'st']):
+    lost_hits = get_missing_hits(cmssw_hits_in, fpga_hits_in, columns)
+
+    diff_hits_tolerance=2
+
+    if lost_hits.size > diff_hits_tolerance:
+        SL1_agreement = compute_agreement(fpga_showers.loc[fpga_showers["sl"]==1], cmssw_showers.loc[cmssw_showers["sl"]==1])
+        SL3_agreement = compute_agreement(fpga_showers.loc[fpga_showers["sl"]==3], cmssw_showers.loc[cmssw_showers["sl"]==3])
+        
+        station_agreement = np.mean([SL1_agreement, SL3_agreement])
+        err_station_agreement = np.std([SL1_agreement, SL3_agreement], ddof=1)
+        return SL1_agreement, SL3_agreement, station_agreement, err_station_agreement
+
+    return None, None, None, None
+
 def main():
     wh = 1
     sc = 10
@@ -88,24 +103,15 @@ def main():
 
     make_plot(cmssw_hits_in, fpga_hits_in, cmssw_showers, fpga_showers, save=False)
 
-    columns = ['sl', 'bx', 'tdc', 'l', 'w', 'id', 'wh', 'sc', 'st']
-    lost_hits = get_missing_hits(cmssw_hits_in, fpga_hits_in, columns)
+    _agreements = stimate_agreements(fpga_showers, cmssw_showers, cmssw_hits_in, fpga_hits_in)
 
-    diff_hits_tolerance=2
-
-    if lost_hits.size > diff_hits_tolerance:
-        SL1_agreement = compute_agreement(fpga_showers.loc[fpga_showers["sl"]==1], cmssw_showers.loc[cmssw_showers["sl"]==1])
-        SL3_agreement = compute_agreement(fpga_showers.loc[fpga_showers["sl"]==3], cmssw_showers.loc[cmssw_showers["sl"]==3])
-        
-        station_agreement = np.mean([SL1_agreement, SL3_agreement])
-        err_station_agreement = np.std([SL1_agreement, SL3_agreement], ddof=1)
-        
+    if all([x is not None for x in _agreements]):
+        SL1_agreement, SL3_agreement, station_agreement, err_station_agreement = _agreements
         print("SL1 match agreement: %.2f"%(SL1_agreement))
         print("SL3 match agreement: %.2f"%(SL3_agreement))
         print("Station match agreement : %.2f +- %.2f"%(station_agreement,err_station_agreement))
     else:
         print("Several hits have been lost, agreement calculation not recomended.")
-
 
 if __name__ == "__main__":
     main()

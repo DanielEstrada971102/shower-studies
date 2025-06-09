@@ -168,7 +168,7 @@ ntuple_preprocessors:
   showers-classifier:
     src: "showers_classification.highpt_showers_identifier"
     kwargs:
-      highpt_threshold: 80
+      highpt_threshold: 1000
 # ================= available selectors - dtntuple ================= #
 ntuple_selectors:
   baseline:
@@ -179,32 +179,17 @@ histo_sources:
   - barrel_filter_histograms
 
 histo_names:
-  - tps_q<6_MB1
-  - tps_q<6_MB2
-  - tps_q<6_MB3
-  - tps_q<6_MB4
-  - tps_q>6_MB1
-  - tps_q>6_MB2
-  - tps_q>6_MB3
-  - tps_q>6_MB4
-  - showers_MB1
-  - showers_MB2
-  - showers_MB3
-  - showers_MB4
-  - showers_true_MB1
-  - showers_true_MB2
-  - showers_true_MB3
-  - showers_true_MB4
-  - tps_match_showers_MB1
-  - tps_match_showers_MB2
-  - tps_match_showers_MB3
-  - tps_match_showers_MB4
-  - matched_tps_MB1
-  - matched_tps_MB2
-  - matched_tps_MB3
-  - matched_tps_MB4
-  # - at_least_oneTP_for_real_shower_MB1
-  # - at_least_oneTP_for_real_shower_MB2
-  # - at_least_oneTP_for_real_shower_MB3
-  # - at_least_oneTP_for_real_shower_MB4
-  # - tps_x_MB1
+  - showered_genmuon_pt_eff
+  - shower_showeredgenmuon_tag_eff_pttrend
+  - shower_matchAmTP_eff_MB1
+  - shower_matchAmTP_eff_MB2
+  - shower_matchAmTP_eff_MB3
+  - shower_matchAmTP_eff_MB4
+  - shower_matchHighPtmuon_eff_MB1
+  - shower_matchHighPtmuon_eff_MB2
+  - shower_matchHighPtmuon_eff_MB3
+  - shower_matchHighPtmuon_eff_MB4
+  - shower_matchshoweredgenmuon_eff_MB1
+  - shower_matchshoweredgenmuon_eff_MB2
+  - shower_matchshoweredgenmuon_eff_MB3
+  - shower_matchshoweredgenmuon_eff_MB4
