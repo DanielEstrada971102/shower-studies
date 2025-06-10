@@ -1,11 +1,11 @@
 <?xml version="1.0" standalone="no"?>
 <svg width="567.429" height="556.072" viewBox="0 0 567.429 556.072" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
 <title>
-./eff_plots/eff_fwshower_rsfix_poster/eff_fwshower_rsfix_poster.svg
+./plots/eff_fwshower/eff_fwshower.svg
 </title>
 <desc>
 Creator: ROOT Version 6.32.08
-CreationDate: Fri Apr  4 04:43:14 2025</desc>
+CreationDate: Tue Jun 10 19:28:00 2025</desc>
 <defs>
 </defs>
 <rect x="0.5" y="0" width="566.929" height="555.572" fill="white"/>

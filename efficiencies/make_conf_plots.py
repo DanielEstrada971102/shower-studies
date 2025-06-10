@@ -27,7 +27,7 @@ def main():
         for iWheel in range(0, 5):
             tp = h.GetBinContent(iWheel + 1, 1)
             fp = h.GetBinContent(iWheel + 1, 2)
-            tn = 0#h.GetBinContent(iWheel + 1, 3)
+            tn = h.GetBinContent(iWheel + 1, 3)
             fn = h.GetBinContent(iWheel + 1, 4)
             total = tp + fp + tn + fn
             conf_map[ st * 2, iWheel * 2] = tp / total
@@ -63,7 +63,8 @@ def main():
 
     fig.colorbar(im, ax=ax, orientation="horizontal", pad=0.01, location="top")
     fig.tight_layout()
-    fig.savefig(folder + "/conf_map_thr8_woutTN.pdf")
+    fig.savefig(folder + "/plots/confusion_maps/conf_map_thr8.pdf")
+    fig.savefig(folder + "/plots/confusion_maps/conf_map_thr8.svg")
 
 if __name__ == "__main__":
     main()

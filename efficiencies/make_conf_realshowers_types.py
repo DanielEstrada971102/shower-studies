@@ -16,7 +16,7 @@ def main():
     folder = "."
     histo_name = "realshower_type_dist_MBX"
 
-    f = r.TFile.Open( folder + "/histograms/histograms_test_thr6.root")
+    f = r.TFile.Open( folder + "/histograms/histograms_thr6.root")
     pre, pos = histo_name.split("MB")
     histos = [ deepcopy( f.Get( f"{pre}MB{ist}{pos[1:]}")) for ist in range(1, 5) ]
     f.Close()
@@ -61,7 +61,8 @@ def main():
 
     fig.colorbar(im, ax=ax, orientation="horizontal", pad=0.01, location="top")
     fig.tight_layout()
-    fig.savefig(folder + "/conf_map_real_shower_type_distributions.pdf")
+    fig.savefig(folder + "/plots/confusion_maps/conf_map_real_shower_type_distributions.pdf")
+    fig.savefig(folder + "/plots/confusion_maps/conf_map_real_shower_type_distributions.svg")
 
 if __name__ == "__main__":
     main()

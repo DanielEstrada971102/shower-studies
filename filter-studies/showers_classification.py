@@ -4,7 +4,6 @@ from dtpr.utils.functions import color_msg
 from pandas import DataFrame
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 def match_shower_genmuons(shower, highpt_threshold=100):
