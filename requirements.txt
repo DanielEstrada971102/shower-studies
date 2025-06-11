@@ -1,2 +1,2 @@
 git+https://github.com/DanielEstrada971102/mplDTs.git@v2.1.1-beta
-git+https://github.com/DanielEstrada971102/DTPatternRecognition.git@v2.0.0
+git+https://github.com/DanielEstrada971102/DTPatternRecognition.git@v2.1.0
