@@ -33,18 +33,12 @@ histos = {}
 
 def set_showered_flags(reader, method=2):
     """
-    Set the showered flag for genmuons depending of the method used.
+    Set the showered flag for genmuons depending on the method used.
     """
     for gm in reader.genmuons:
         gm.showered = False # ensure the flag is reset
 
-    if method in [1, 2]:
-        analyze_genmuon_showers(reader, method=method)
-    else:
-        # Method 3: set showered flag is genmuon traversed a chamber where a real shower is present
-        for gm in reader.genmuons:
-            traversed_locs = get_unique_locs(particles=gm.matched_segments, loc_ids=["wh", "sc", "st"])
-            gm.showered = any(loc in traversed_locs for loc in get_unique_locs(reader.realshowers, loc_ids=["wh", "sc", "st"]))
+    analyze_genmuon_showers(reader, method=method)
     return reader.genmuons
 
 histos.update({

@@ -32,6 +32,7 @@ def main():
             graph_meth3.SetPointEXlow(ibin, 0)
         graphs.append((graph_meth3, "Method 3"))
 
+
     nBins = 50
     binFirst = 0
     binLast = 3335
@@ -39,7 +40,7 @@ def main():
     # Now plot the graphs
     rpf.plot_graphs(
         graphs = graphs, 
-        name = "genmuons_showered_tag_methods",
+        name = "genmuons_showered_tag_methods_extended",
         nBins = nBins, 
         firstBin = binFirst, 
         lastBin = binLast,
