@@ -92,11 +92,11 @@ def _dump_showers(event: Event, outpath: str, tag: str=""):
 
 def main():
     inpath = os.path.join("./ntuple4aggreement.root")
-    outfolder = "."
+    outfolder = "../data/Input_CMSSW"
     RUN_CONFIG.change_config_file(config_path="./run_config.yaml")
 
-    create_outfolder(os.path.join(outfolder, "digis_fpga_dumper_results"))
-    create_outfolder(os.path.join(outfolder, "showers_dumper_results"))
+    # create_outfolder(os.path.join(outfolder, "digis_IN_FPGA"))
+    create_outfolder(os.path.join(outfolder, "Shower_results_Emulator"))
 
     # Start of the analysis 
     color_msg(f"Running program...", "green")
@@ -127,8 +127,8 @@ def main():
             if ev.index >= total:
                 break
 
-            _dump_digis(ev, outpath=os.path.join(outfolder, "digis_fpga_dumper_results"), tag="")	
-            _dump_showers(ev, outpath=os.path.join(outfolder, "showers_dumper_results"), tag="")
+            # _dump_digis(ev, outpath=os.path.join(outfolder, "digis_IN_FPGA"), tag="")	
+            _dump_showers(ev, outpath=os.path.join(outfolder, "Shower_results_Emulator"), tag="")
 
     color_msg(f"Done!", color="green")
 

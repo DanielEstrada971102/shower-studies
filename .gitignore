@@ -10,5 +10,8 @@ test/*.svg
 *inspections*
 *.tar.gz*
 *.dat
+*.log
+*.jou
+*.Xil
 *.txt
 !requirements.txt

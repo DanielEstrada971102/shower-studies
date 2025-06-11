@@ -1,0 +1,51 @@
+# ------------------------------- configuration for Event -------------------------------------#
+particle_types:
+  digis:
+    amount: 'digi_nDigis'
+    attributes:
+      wh: 
+        branch: 'digi_wheel'
+      sc: 
+        branch: 'digi_sector'
+      st: 
+        branch: 'digi_station'
+      sl: 
+        branch: 'digi_superLayer'
+      w: 
+        branch: 'digi_wire'
+      l: 
+        branch: 'digi_layer'
+      time: 
+        branch: 'digi_time'
+      BX:
+        expr: 'int(time // 25) if time is not None else None'
+    sorter:
+      by: 'p.BX'
+  emushowers:
+    amount: 'ph2Shower_station'
+    attributes:
+      wh: 
+        branch: 'ph2Shower_wheel'
+      sc : 
+        branch: 'ph2Shower_sector'
+      st: 
+        branch: 'ph2Shower_station'
+      sl: 
+        branch: 'ph2Shower_superlayer'
+      nDigis: 
+        branch: 'ph2Shower_ndigis'
+      BX: 
+        branch: 'ph2Shower_BX'
+      min_wire: 
+        branch: 'ph2Shower_min_wire'
+      max_wire: 
+        branch: 'ph2Shower_max_wire'
+      avg_pos: 
+        branch: 'ph2Shower_avg_pos'
+      avg_time: 
+        branch: 'ph2Shower_avg_time'
+      wires_profile: 
+        branch: 'ph2Shower_wires_profile'
+
+# -------------------------------- configuration for NTuple --------------------------------------#
+ntuple_tree_name: '/dtNtupleProducer/DTTREE'

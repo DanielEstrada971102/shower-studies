@@ -32,7 +32,7 @@ def make_agreements_summary_plot(agreements_df, save=False):
         plt.show()
 
 def main():
-    base_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "showers-data2/")
+    base_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data/")
     results_dir = os.path.join(base_dir, "agreements_results/")
 
     create_outfolder(results_dir)
@@ -40,7 +40,7 @@ def main():
     # scan directory to know which wh, sc, st to use
     _agreements_data = []
     _anomalous_data = set()
-    for file in os.scandir(os.path.join(base_dir, "Input_CMSSW/digis_IN_FPGA")):
+    for file in os.scandir(os.path.join(base_dir, "Input_CMSSW/digis_IN_FPGA/")):
         if file.is_file() and file.name.endswith(".txt"):
             # Extract wh, sc, st from filename
             match = re.search(r"wh(-?\d+)_sc(\d+)_st(\d+)", file.name)
@@ -48,7 +48,7 @@ def main():
                 wh, sc, st = map(int, match.groups())
             else:
                 continue
-            print(f"Processing: wh={wh}, sc={sc}, st={st}")
+            # print(f"Processing: wh={wh}, sc={sc}, st={st}")
             cmssw_hits_in, fpga_hits_in, cmssw_showers, fpga_showers = make_dataframes(base_dir, wh, sc, st)
             _agreements = stimate_agreements(fpga_showers, cmssw_showers, cmssw_hits_in, fpga_hits_in)
 
@@ -63,18 +63,24 @@ def main():
                     "station_agreement": station_agreement,
                     "err_station_agreement": err_station_agreement
                 })
-            else:
-                _anomalous_data.add((wh, sc, st))
+                if station_agreement < 0.9:  # Threshold for anomalous data
+                    _anomalous_data.add((wh, sc, st))
 
     # Create DataFrames
     agreements_df = DataFrame(_agreements_data)
     anomalous_df = DataFrame(_anomalous_data, columns=["wh", "sc", "st"])
 
-    # # Save DataFrames to CSV
+    # Save DataFrames to CSV
     # agreements_df.to_csv(os.path.join(results_dir, "agreements.csv"), index=False)
-    # anomalous_df.to_csv(os.path.join(results_dir, "anomalous.csv"), index=False)
+    anomalous_df.to_csv(os.path.join(results_dir, "anomalous.csv"), index=False)
 
-    make_agreements_summary_plot(agreements_df, save=False)
+    # make_agreements_summary_plot(agreements_df, save=False)
+    # summaryze results
+    print("Agreements Summary:")
+    total_station_agreament = agreements_df["station_agreement"].mean()
+    err_total_station_agreement = agreements_df["station_agreement"].std(ddof=1) / agreements_df.shape[0]**0.5 
+
+    print(f"{total_station_agreament:.2f} ± {err_total_station_agreement:.2f}")
 
 if __name__ == "__main__":
     main()
