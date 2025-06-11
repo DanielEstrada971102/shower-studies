@@ -1,0 +1,4 @@
+[submodule "fpga_showers"]
+	path = fpga_showers
+	url = ssh://git@gitlab.cern.ch:7999/jpradopi/fpga_showers.git
+	branch = main
