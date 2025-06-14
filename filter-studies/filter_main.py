@@ -62,19 +62,25 @@ def plot_shower_segment(ax, segment, color='g'):
 
 def make_plot(things_to_plot):
     """Create a plot with DT stations, showers, and TPs."""
+    if not all(things_to_plot.values()):
+        color_msg("Nothing to plot, skipping...", color="yellow", indentLevel=1)
+        return
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     _built_stations_patches.clear()  # Clear previous patches to avoid duplicates
 
-    for dt in things_to_plot["dts"].values():
-        key = dt.wheel, dt.sector, dt.number
-        if key not in _built_stations_patches:
-            DTStationPatch(station=dt, faceview="phi", local=False, axes=ax, cells_kwargs=cell_patch_kwargs)
-    for shower in things_to_plot["showers"]:
-        # plot_rectangle(ax, shower)
-        plot_shower_segment(ax, shower)
-    MultiDTSegmentsPatch(
-        segments=things_to_plot["tps"], axes=ax, faceview="phi", local=False, vmap="matched", segs_kwargs=segs_kwargs
-    )
+    if things_to_plot["dts"]:
+        for dt in things_to_plot["dts"].values():
+            key = dt.wheel, dt.sector, dt.number
+            if key not in _built_stations_patches:
+                DTStationPatch(station=dt, faceview="phi", local=False, axes=ax, cells_kwargs=cell_patch_kwargs)
+    if things_to_plot["showers"]:
+        for shower in things_to_plot["showers"]:
+            # plot_rectangle(ax, shower)
+            plot_shower_segment(ax, shower)
+    if things_to_plot["tps"]:
+        MultiDTSegmentsPatch(
+            segments=things_to_plot["tps"], axes=ax, faceview="phi", local=False, vmap="matched", segs_kwargs=segs_kwargs
+        )
     ax.set_xlim(-800, 800)
     ax.set_ylim(-800, 800)
     plt.show()
@@ -135,7 +141,7 @@ def match_tp_to_shower(segment, shower):
     # return ray_rect_matching(p, d, rect)
     return ray_seg_matching(p, d, a, b)
 
-def _analyzer(showers, tps, debug=False, plot=False):
+def _analyzer(showers, tps, shower_seg_version=2, debug=False, plot=False):
     """Analyze showers and TPs for a given event, optionally plotting results."""
     if plot:
         _things_to_plot = {"dts": {}, "showers": [], "tps": None}
@@ -154,7 +160,7 @@ def _analyzer(showers, tps, debug=False, plot=False):
 
         # get the rectangle for the shower
         # _rect = get_shower_rectangle(_dt, shower)
-        _shower_seg = get_shower_segment(_dt, shower, version=2)
+        _shower_seg = get_shower_segment(_dt, shower, version=shower_seg_version)
 
         if plot:
             # _things_to_plot["showers"].append(_rect)
@@ -199,7 +205,7 @@ def _analyzer(showers, tps, debug=False, plot=False):
     if plot:
         make_plot(_things_to_plot)
 
-def barrel_filter_analyzer(ev, only4true_showers=False, debug=False, plot=False):
+def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, debug=False, plot=False):
     """Divide event into sectors and analyze showers/TPs for each sector."""
     # simple filter in case only true showers are needed, or to avoid analyzing events without showers
     _showers = ev.filter_particles("fwshowers", is_true_shower=True) if only4true_showers else ev.fwshowers
@@ -241,7 +247,7 @@ def barrel_filter_analyzer(ev, only4true_showers=False, debug=False, plot=False)
             continue
         if debug:
             color_msg("Analyzing...", color="yellow", indentLevel=1)
-        _analyzer(showers, tps, debug, plot) # this only analyze in Phi view
+        _analyzer(showers, tps, shower_seg_version, debug, plot) # this only analyze in Phi view
 
 def main():
     """Main entry point for running the filter analysis."""

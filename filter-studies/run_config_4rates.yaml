@@ -110,8 +110,10 @@ particle_types:
         branch: 'ph2Shower_superlayer'
       nDigis: 
         branch: 'ph2Shower_ndigis'
-      BX: 
+      _BX: 
         branch: 'ph2Shower_BX'
+      BX: # re-define the BX attribute to center it at 20
+        expr: '_BX - 18'
       min_wire: 
         branch: 'ph2Shower_min_wire'
       max_wire: 
@@ -181,28 +183,19 @@ histo_sources:
   - barrel_filter_histograms
 
 histo_names:
-  - shower_showeredgenmuon_tag_eff_pttrend
-  - shower_genmuon_tag_eff_pttrend_all
-  - AMTp_showeredgenmuon_tag_eff_pttrend
-  - AMTp_genmuon_tag_eff_pttrend_all
-  - fwshower_eff_afterfilter_MB1
-  - fwshower_eff_afterfilter_MB2
-  - fwshower_eff_afterfilter_MB3
-  - fwshower_eff_afterfilter_MB4
-  - AMTpshowered_AMTps_eff_MB1
-  - AMTpshowered_AMTps_eff_MB2
-  - AMTpshowered_AMTps_eff_MB3
-  - AMTpshowered_AMTps_eff_MB4
-  - AMTpshoweredtagged_AMTps_eff_MB1
-  - AMTpshoweredtagged_AMTps_eff_MB2
-  - AMTpshoweredtagged_AMTps_eff_MB3
-  - AMTpshoweredtagged_AMTps_eff_MB4
-  - seg_eff_afterfilter_MB1
-  - seg_eff_afterfilter_MB2
-  - seg_eff_afterfilter_MB3
-  - seg_eff_afterfilter_MB4
-  - showers_classification
-  - showers_classification_MB1  
-  - showers_classification_MB2
-  - showers_classification_MB3
-  - showers_classification_MB4
+  - fwshower_rate_afterfilter_goodBX_MB1
+  - fwshower_rate_afterfilter_goodBX_MB2
+  - fwshower_rate_afterfilter_goodBX_MB3
+  - fwshower_rate_afterfilter_goodBX_MB4
+  - fwshower_rate_afterfilter_allBX_MB1
+  - fwshower_rate_afterfilter_allBX_MB2
+  - fwshower_rate_afterfilter_allBX_MB3
+  - fwshower_rate_afterfilter_allBX_MB4
+  - AM_rate_afterfilter_goodBX_MB1
+  - AM_rate_afterfilter_goodBX_MB2
+  - AM_rate_afterfilter_goodBX_MB3
+  - AM_rate_afterfilter_goodBX_MB4
+  - AM_rate_afterfilter_allBX_MB1
+  - AM_rate_afterfilter_allBX_MB2
+  - AM_rate_afterfilter_allBX_MB3
+  - AM_rate_afterfilter_allBX_MB4

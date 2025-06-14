@@ -58,7 +58,8 @@ def classify_showers(event):
         summary[key] += 1
         key = f"{key}_matched_amtp" if shower.matched_tps else f"{key}_not_matched_amtp"
         summary[key] += 1
-        key = f"{key}_highpt" if shower.is_highpt_shower else f"{key}_not_highpt"
+        # key = f"{key}_highpt" if shower.is_highpt_shower else f"{key}_not_highpt"
+        key = f"{key}_highpt" if shower.comes_from_showered_genmuon else f"{key}_not_highpt"
         summary[key] += 1
 
     return summary
