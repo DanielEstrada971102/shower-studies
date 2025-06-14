@@ -119,13 +119,20 @@ def get_shower_segment(dt, shower, version=1):
     """
     if version == 1: # compute using the wires profile
         # dump profile to wires numbers
-        wires = [wn for wn, nh in enumerate(shower.wires_profile) for _ in range(nh)]
-        q75, q25 = map(int, np.percentile(wires, [75, 25]))
-        # use only the wires in the range [q25, q75]
-        wires = sorted([wire for wire in wires if wire >= q25 and wire <= q75])
+        try:
+            wires = [wn for wn, nh in enumerate(shower.wires_profile) for _ in range(nh)]
+            q75, q25 = map(int, np.percentile(wires, [75, 25]))
+            # use only the wires in the range [q25, q75]
+            wires = sorted([wire for wire in wires if wire >= q25 and wire <= q75 ])
+            wires[-1] = wires[-1] + 1 if wires[-1] == wires[0] else wires[-1]
 
-        first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(wires[0])
-        last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(wires[-1])
+            first_wire = wires[0] if wires[0] >= dt.super_layer(shower.sl).layer(2)._first_cell_id else dt.super_layer(shower.sl).layer(2)._first_cell_id
+            last_wire = wires[-1] if wires[-1] <= dt.super_layer(shower.sl).layer(2)._last_cell_id else dt.super_layer(shower.sl).layer(2)._last_cell_id
+            first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(first_wire)
+            last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(last_wire)
+        except:
+            first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.min_wire)
+            last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.max_wire)
     if version == 2: # compute using max and min wire numbers
         first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.min_wire)
         last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.max_wire)

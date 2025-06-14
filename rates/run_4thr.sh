@@ -12,7 +12,7 @@ threshold=$1
 # Define the base input directory and output options
 base_input_dir="/lustrefs/hdd_pool_dir/L1T/Filter/ThresholdScan_Zprime_DY/last/MinBias_PU200/"
 output_dir="."
-tag_prefix="_thr"
+tag_prefix="_sbxfix_thr"
 
 # Search for the input file matching the threshold
 input_file=$(find "$base_input_dir" -type f -path "*/0000/*thr${threshold}*.root" | head -n 1)

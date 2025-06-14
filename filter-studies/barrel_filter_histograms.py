@@ -243,11 +243,11 @@ def showers_classification(event, station=None):
         output.append(shower_classes[key])
         key = f"{key}_matched_amtp" if shower.matched_tps else f"{key}_not_matched_amtp"
         output.append(shower_classes[key])
-        key = f"{key}_highpt" if shower.is_highpt_shower else f"{key}_not_highpt"
-        output.append(shower_classes[key])
+        key_1 = f"{key}_highpt" if shower.is_highpt_shower else f"{key}_not_highpt"
+        output.append(shower_classes[key_1])
         # Remove the '_highpt' or '_not_highpt' part for the last key
-        key = f"{key.rsplit('_', 1)[0]}_showeredmuon" if shower.comes_from_showered_genmuon else f"{key.rsplit('_not', 1)[0]}_not_showeredmuon"
-        output.append(shower_classes[key])
+        key_2 = f"{key}_showeredmuon" if shower.comes_from_showered_genmuon else f"{key}_not_showeredmuon"
+        output.append(shower_classes[key_2])
 
     return output
 

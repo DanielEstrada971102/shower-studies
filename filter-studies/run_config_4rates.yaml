@@ -167,7 +167,7 @@ ntuple_preprocessors:
     src: "filter_main.barrel_filter_analyzer"
     kwargs:
       only4true_showers: False
-      shower_seg_version: 2
+      shower_seg_version: 1
   showers-classifier:
     src: "showers_classification.highpt_showers_identifier"
     kwargs:

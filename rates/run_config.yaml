@@ -127,8 +127,10 @@ particle_types:
         branch: 'ph2Shower_superlayer'
       nDigis: 
         branch: 'ph2Shower_ndigis'
-      BX: 
+      _BX: 
         branch: 'ph2Shower_BX'
+      BX:
+        expr: '_BX - 18'
       min_wire: 
         branch: 'ph2Shower_min_wire'
       max_wire: 

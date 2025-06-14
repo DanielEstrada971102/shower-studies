@@ -24,10 +24,10 @@ fi
 
 # Set input_dir and run_config_file based on mode
 if [[ "$mode" == "minbias" ]]; then
-    input_dir="MINBIAS DIR"
+    input_dir="/lustrefs/hdd_pool_dir/L1T/Filter/ThresholdScan_Zprime_DY/last/MinBias_PU200/250312_132004"
     run_config_file="run_config_4rates.yaml"
 else 
-    input_dir="ZPRIME DIR"
+    input_dir="/lustrefs/hdd_pool_dir/L1T/Filter/ThresholdScan_Zprime_DY/last/ZprimeToMuMu_M-6000_PU200/250312_131631/0000"
     run_config_file="run_config.yaml"
 fi
 
@@ -36,3 +36,5 @@ sed -i "s/shower_seg_version: [0-9]\+/shower_seg_version: $seg_version/" "$run_c
 
 # Execute the dtpr fill-histos command
 dtpr fill-histos -i "$input_dir/" -o "." -cf "$run_config_file" --tag="_${mode}_segv${seg_version}"
+
+echo "Processing completed for mode: $mode with segmentation version: $seg_version"
