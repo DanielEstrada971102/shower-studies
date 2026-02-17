@@ -1,0 +1,11 @@
+histo_sources:
+  - dtpr.utils.histograms
+
+
+histo_names:
+  # ============ leading_mu ============ #
+  - LeadingMuon_pt
+  - LeadingMuon_eta
+  # =========== subleading_mu ========== #
+  - SubLeadingMuon_pt
+  - SubLeadingMuon_eta

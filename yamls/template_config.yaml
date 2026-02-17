@@ -1,0 +1,25 @@
+# -------------------------------- configuration for NTuple --------------------------------------#
+ntuple_tree_name: '/dtNtupleProducer/DTTREE'
+
+# ntuple_preprocessors:
+# ntuple_selectors:
+# ...
+
+# -------------------------------- configuration for particles --------------------------------------#
+particle_types:
+  digis: !include particles/digis.yaml
+  segments: !include particles/segments.yaml
+  tps: !include particles/tps.yaml
+  genmuons: !include particles/genmuons.yaml
+  fwshowers: !include particles/cmssw_showers.yaml
+  simhits: !include particles/simhits.yaml
+
+# -------------------------------- configuration for histograms -----------------------------------#
+!include histos_config.yaml
+
+# ----------------------------- configuration for event inspector ---------------------------------#
+# Functions to be used in the event inspector.
+# inspector-functions:
+
+# ------------------------------- configuration for dt plots  -------------------------------------#
+plot_configs: !include plot_configs.yaml

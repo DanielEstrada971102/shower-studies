@@ -1,0 +1,19 @@
+amount: 'simHit_nSimHits'
+
+attributes:
+  wh: 
+    branch: 'simHit_wheel'
+  sc: 
+    branch: 'simHit_sector'
+  st: 
+    branch: 'simHit_station'
+  sl: 
+    branch: 'simHit_superLayer'
+  l: 
+    branch: 'simHit_layer'
+  w: 
+    branch: 'simHit_wire'
+  process_type: 
+    branch: 'simHit_processType'
+  particle_type: 
+    branch: 'simHit_particleType'

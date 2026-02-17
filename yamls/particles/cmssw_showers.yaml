@@ -1,0 +1,28 @@
+amount: 'ph2Shower_station'
+
+attributes:
+  wh: 
+    branch: 'ph2Shower_wheel'
+  sc: 
+    branch: 'ph2Shower_sector'
+  st: 
+    branch: 'ph2Shower_station'
+  sl: 
+    branch: 'ph2Shower_superlayer'
+  nDigis: 
+    branch: 'ph2Shower_ndigis'
+  BX: 
+    branch: 'ph2Shower_BX'
+  min_wire: 
+    branch: 'ph2Shower_min_wire'
+  max_wire: 
+    branch: 'ph2Shower_max_wire'
+  avg_pos: 
+    branch: 'ph2Shower_avg_pos'
+  avg_time: 
+    branch: 'ph2Shower_avg_time'
+  wires_profile: 
+    branch: 'ph2Shower_wires_profile'
+  matched_tps: []
+  
+filter: 'p.sl !=2' # only consider showers in SL1 and SL3 at the moment

@@ -1,0 +1,11 @@
+genmuon_matcher:
+    src: "utils.genmuon_functions.analyze_genmuon_matches"
+
+real_shower_builder:
+    src: "utils.shower_functions.build_real_showers"
+    kwargs:
+        threshold: 8
+        debug: False
+
+fw_shower_analyzer:
+    src: "utils.shower_functions.analyze_fwshowers"

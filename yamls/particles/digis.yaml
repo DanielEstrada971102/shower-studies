@@ -1,0 +1,22 @@
+# digis configuration
+amount: 'digi_nDigis'
+
+attributes:
+  wh: 
+    branch: 'digi_wheel'
+  sc: 
+    branch: 'digi_sector'
+  st: 
+    branch: 'digi_station'
+  sl: 
+    branch: 'digi_superLayer'
+  w: 
+    branch: 'digi_wire'
+  l: 
+    branch: 'digi_layer'
+  time: 
+    branch: 'digi_time'
+  BX:
+    expr: 'time // 25 if time is not None else None'
+sorter:
+  by: 'p.BX'

@@ -1,0 +1,18 @@
+amount: 'gen_nGenParts'
+
+attributes:
+  pt: 
+    branch: 'gen_pt'
+  eta: 
+    branch: 'gen_eta'
+  phi: 
+    branch: 'gen_phi'
+  charge: 
+    branch: 'gen_charge'
+  matched_segments: []
+  matched_tps: []
+  showered: False
+filter: 'abs(ev.gen_pdgId[p.index]) == 13'
+sorter:
+  by: 'p.pt'
+  reverse: True

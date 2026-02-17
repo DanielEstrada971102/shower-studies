@@ -1,0 +1,25 @@
+amount: 'seg_nSegments'
+
+attributes:
+  wh: 
+    branch: 'seg_wheel'
+  sc: 
+    branch: 'seg_sector'
+  st: 
+    branch: 'seg_station'
+  phi: 
+    branch: 'seg_posGlb_phi'
+  eta: 
+    branch: 'seg_posGlb_eta'
+  nHits_phi: 
+    branch: 'seg_phi_nHits'
+  nHits_z: 
+    branch: 'seg_z_nHits'
+  t0_phi: 
+    branch: 'seg_phi_t0'
+  pos_locx_sl1: 
+    branch: 'seg_posLoc_x_SL1'
+  pos_locx_sl3: 
+    branch: 'seg_posLoc_x_SL3'
+  matched_genmuons: []
+  matched_tps: []

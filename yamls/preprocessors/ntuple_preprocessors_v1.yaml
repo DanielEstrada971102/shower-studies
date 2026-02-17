@@ -1,0 +1,27 @@
+genmuon_matcher:
+  src: "utils.genmuon_functions.analyze_genmuon_matches"
+
+real_shower_builder:
+  src: "utils.shower_functions.build_real_showers"
+  kwargs:
+    threshold: 8
+    debug: False
+
+genmuon_showerer:
+  src: "utils.genmuon_functions.analyze_genmuon_showers"
+  kwargs:
+    method: 3 # 1: using offline segments, 2: using simhits, 3: using real showers
+
+fw_shower_analyzer:
+  src: "utils.shower_functions.analyze_fwshowers"
+
+filter_matching:
+  src: "filter_studies.filter_main.barrel_filter_analyzer"
+  kwargs:
+    only4true_showers: False
+    shower_seg_version: 2
+
+showers-classifier:
+  src: "filter_studies.showers_classification.highpt_showers_identifier"
+  kwargs:
+    highpt_threshold: 200

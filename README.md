@@ -20,7 +20,7 @@ The subdirectories in this repo contains specific studies on the mentioned data:
 
 4. `filter-studies`: Before the DT primitives are sent to the track finders, they can go through an intermediate stage known as the "Barrel Filter." In this stage, more refined algorithms are applied to cross the information of DT, shower, and RPC primitives (?). This directory contains studies conducted to evaluate which filtering and selection processes are relevant to include in this stage.
 
-Each directory contains more details about the specific tasks performed there. The analyses presented here assume that the frameworks [DTPatternRecognition](https://github.com/INTREPID-hep/DTPatternRecognition) and [mplDTs](https://github.com/INTREPID-hep/mplDTs) are being used. Specific versions are listed as DTPatternRecognition@v3.2.0 and mplDTs@v2.2.0-beta.
+Each directory contains more details about the specific tasks performed there. The analyses presented here assume that the frameworks [DTPatternRecognition](https://github.com/INTREPID-hep/DTPatternRecognition) and [mplDTs](https://github.com/INTREPID-hep/mplDTs) are being used. Specific versions are listed as DTPatternRecognition@v3.3.0-beta and mplDTs@v2.2.0-beta.
 
 ## Installation
 

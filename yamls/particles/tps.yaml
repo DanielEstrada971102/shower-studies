@@ -1,0 +1,34 @@
+amount: 'ph2TpgPhiEmuAm_nTrigs'
+
+attributes:
+  wh: 
+    branch: 'ph2TpgPhiEmuAm_wheel'
+  sc: 
+    branch: 'ph2TpgPhiEmuAm_sector'
+  st: 
+    branch: 'ph2TpgPhiEmuAm_station'
+  sl:
+    branch: 'ph2TpgPhiEmuAm_superLayer'
+  phi: 
+    branch: 'ph2TpgPhiEmuAm_phi'
+  phiB: 
+    branch: 'ph2TpgPhiEmuAm_phiB'
+  posLoc_x:
+    branch: 'ph2TpgPhiEmuAm_posLoc_x'
+  dirLoc_phi:
+    branch: 'ph2TpgPhiEmuAm_dirLoc_phi'
+  quality: 
+    branch: 'ph2TpgPhiEmuAm_quality'
+  rpcFlag: 
+    branch: 'ph2TpgPhiEmuAm_rpcFlag'
+  _BX: # first get the BX from the branch
+    branch: 'ph2TpgPhiEmuAm_BX'
+  BX: # then re-define the BX attribute to center it at 0
+    expr: '_BX - 20'
+  phires_conv:
+    expr: '65536.0 / 0.5'
+  matched_segments: []
+  matched_genmuons: []
+  matched_showers: []
+
+filter: 'p.quality >= 0'
