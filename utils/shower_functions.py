@@ -294,7 +294,7 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
             # hits are spread out in the chamber
             spread = simhits_sdf["w"].std()**2 > 1
             # are duplicated matched segments
-            matched_segments = [seg for gm in ev.genmuons for seg in getattr(gm, 'matched_segments', [])]
+            matched_segments = []#[seg for gm in ev.genmuons for seg in getattr(gm, 'matched_segments', [])]
             if matched_segments:
                 are_duplicated_segments = len(matched_segments) > len(get_unique_locs(matched_segments, loc_ids=["wh", "sc", "st"]))
             else:
