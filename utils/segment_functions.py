@@ -1,7 +1,10 @@
 from dtpr.base import Particle
 from dtpr.utils.functions import append_to_matched_list
-import math
+from numpy import cos, arccos, arctan2, pi, degrees
 from typing import Optional
+from mpldts.geometry.station import STATION_CACHE
+
+Station = STATION_CACHE.get
 
 def match_offline_AMtp(segment: Particle, tp: Particle, max_dPhi: Optional[float] = 0.1) -> None:
     """
@@ -37,9 +40,9 @@ def match_offline_AMtp(segment: Particle, tp: Particle, max_dPhi: Optional[float
     if tp.wh == segment.wh and tp_sc == seg_sc and tp.st == segment.st:
         # In this case, they are in the same chamber: match dPhi
         # -- Use a conversion factor to express phi in radians
-        trigGlbPhi = tp.phi / tp.phires_conv + math.pi / 6 * (tp.sc - 1)
-        dphi = abs(math.acos(math.cos(segment.phi - trigGlbPhi)))
-        matches = dphi < max_dPhi and tp.BX == 0
+        trigGlbPhi = tp.phi / tp.phires_conv + pi / 6 * (tp.sc - 1)
+        dphi = abs(arccos(cos(segment.phi - trigGlbPhi)))
+        matches = dphi < max_dPhi and tp.BX == 0 # <--- deberia haber un dBX?
         if matches:
             append_to_matched_list(segment, 'matched_tps', tp)
             append_to_matched_list(tp, 'matched_segments', segment)
@@ -48,3 +51,21 @@ def match_offline_AMtp(segment: Particle, tp: Particle, max_dPhi: Optional[float
                 for gm in segment.matched_genmuons:
                     append_to_matched_list(gm, 'matched_tps', tp)
                     append_to_matched_list(tp, 'matched_genmuons', gm)
+
+def compute_offseg_psi(segment: Particle) -> float:
+    """
+    Compute the psi angle for an offline segment.
+
+    :param segment: The segment for which to compute psi.
+    :type segment: Particle
+    :return: The computed psi angle in degrees.
+    :rtype: float
+    """
+    
+    parent = Station(wh=segment.wh, sc=segment.sc, st=segment.st)
+    y_sl1 = parent.super_layer(1).local_center[2]
+    y_sl3 = parent.super_layer(3).local_center[2]
+    x_sl1 = segment.pos_locx_sl1
+    x_sl3 = segment.pos_locx_sl3
+    psi = arctan2(x_sl3 - x_sl1, -1 * (y_sl3 - y_sl1))
+    return degrees(psi)

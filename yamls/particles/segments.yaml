@@ -7,6 +7,7 @@ attributes:
     branch: 'seg_sector'
   st: 
     branch: 'seg_station'
+  sl: 0
   phi: 
     branch: 'seg_posGlb_phi'
   eta: 
@@ -21,5 +22,9 @@ attributes:
     branch: 'seg_posLoc_x_SL1'
   pos_locx_sl3: 
     branch: 'seg_posLoc_x_SL3'
+  posLoc_x: 0 
+    # expr: '(pos_locx_sl1 + pos_locx_sl3) / 2'
+  dirLoc_phi: 0
+    # src: "utils.segment_functions.compute_offseg_psi" 
   matched_genmuons: []
   matched_tps: []
