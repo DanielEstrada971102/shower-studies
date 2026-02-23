@@ -24,8 +24,8 @@ def identify_efficiency_graphs(tags, labels, inpath=f"{in_folder}/histograms"):
     return graphs
 
 def main():
-    tags = ["", "_simhitsfilter", "_simhitsfilter_diffThrs", "_simhitsfilter_diffThrs_nn"]#, "_simhitsfilter_diffThrs_nn_covercell"]
-    labels = ["Nothing", "SimHits filter", "SimHits filter + diff. thresholds", "SimHits filter + diff. thresholds + NN filter"]#, "SimHits filter + diff. thresholds + NN filter + cover cell"]
+    tags = ["_test2202"]#["_cmssw_nonn", "_jpp_nonn", "_jpp_nn"]#["", "_simhitsfilter", "_simhitsfilter_diffThrs", "_simhitsfilter_diffThrs_nn"]#, "_simhitsfilter_diffThrs_nn_covercell"]
+    labels = ["just TPs geometry corrected"]#["cmssw_nonn", "jpp_nonn", "jpp_nn"]#["Nothing", "SimHits filter", "SimHits filter + diff. thresholds", "SimHits filter + diff. thresholds + NN filter"]#, "SimHits filter + diff. thresholds + NN filter + cover cell"]
     graphs = identify_efficiency_graphs(tags, labels)
     
     nBins = 50
@@ -36,7 +36,7 @@ def main():
             ("Private work (#bf{CMS} Phase-2 Simulation)", (.08, .90, .5, .95), 0.03),
             ("200 PU", (.75, .90, .89, .95), 0.03),
     ]
-    legend_pos=(0.3, 0.68, 0.44, 0.78)
+    legend_pos=(0.3, 0.48, 0.44, 0.58)
     drawOption="pe1 same"
     titleX = "GenMuon Pt [GeV]"
     titleY = "Identification efficiency #scale[0.5]{#left[#frac{GenMuon showered identified}{GenMuon showered}#right]}"
@@ -44,7 +44,7 @@ def main():
     # Now plot the graphs
     rpf.plot_graphs(
         graphs = graphs, 
-        name = "identify_efficiency_3",
+        name = "identify_efficiency_5",
         nBins = nBins, 
         firstBin = binFirst, 
         lastBin = binLast,

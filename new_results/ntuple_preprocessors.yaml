@@ -16,12 +16,14 @@ genmuon_showerer:
 fw_showers_builder:
   src: "utils.shower_functions.build_fwshowers"
   kwargs:
+    name: "fwshowers"
     threshold: [9, 9, 8, 8]
-    use_NN_filter: True
     debug: False
 
 drop_fwshowers:
   src: "utils.shower_functions.drop_fwshowers"
+  kwargs:
+    showers2use_name: "fwshowers"
 
 fw_shower_analyzer:
   src: "utils.shower_functions.analyze_fwshowers"
@@ -32,8 +34,10 @@ filter_matching:
     only4true_showers: False
     shower_seg_version: 2
     cover_full_cells: False
+    showers2use_name: "fwshowers"
 
 showers-classifier:
   src: "filter_studies.showers_classification.highpt_showers_identifier"
   kwargs:
     highpt_threshold: 200
+    showers2use_name: "fwshowers"

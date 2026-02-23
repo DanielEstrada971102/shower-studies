@@ -1,5 +1,13 @@
 !include ../yamls/run_config_v2.yaml
 
+# particle_types:
+#   digis: !include ../yamls/particles/digis.yaml
+#   segments: !include ../yamls/particles/segments.yaml
+#   genmuons: !include ../yamls/particles/genmuons.yaml
+#   fwshowers: !include ../yamls/particles/cmssw_showers.yaml
+#   simhits: !include ../yamls/particles/simhits.yaml
+#   tps: !include ../yamls/particles/tps_v2.yaml
+
 ntuple_preprocessors: !include ntuple_preprocessors.yaml
 
 histo_sources:
@@ -11,15 +19,15 @@ histo_names:
   - fwshower_eff_MB2
   - fwshower_eff_MB3
   - fwshower_eff_MB4
-  - shower_tpfptnfn_MB1
-  - shower_tpfptnfn_MB2
-  - shower_tpfptnfn_MB3
-  - shower_tpfptnfn_MB4
-  - shower_tpfptnfn_g4
+  # - shower_tpfptnfn_MB1
+  # - shower_tpfptnfn_MB2
+  # - shower_tpfptnfn_MB3
+  # - shower_tpfptnfn_MB4
+  # - shower_tpfptnfn_g4
 
   - shower_showeredgenmuon_tag_eff_pttrend
-  - showers_classification
-  - showers_classification_MB1  
-  - showers_classification_MB2
-  - showers_classification_MB3
-  - showers_classification_MB4
+  # - showers_classification
+  # - showers_classification_MB1  
+  # - showers_classification_MB2
+  # - showers_classification_MB3
+  # - showers_classification_MB4
