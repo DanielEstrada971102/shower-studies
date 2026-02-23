@@ -219,10 +219,10 @@ def _analyzer(showers, tps, shower_seg_version=2, debug=False, plot=False, cover
     if plot:
         make_plot(_things_to_plot)
 
-def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, debug=False, plot=False,cover_full_cells=False):
+def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, debug=False, plot=False,cover_full_cells=False, showers2use_name="fwshowers"):
     """Divide event into sectors and analyze showers/TPs for each sector."""
     # simple filter in case only true showers are needed, or to avoid analyzing events without showers
-    _showers = ev.filter_particles("fwshowers", is_true_shower=True) if only4true_showers else ev.fwshowers
+    _showers = ev.filter_particles(showers2use_name, is_true_shower=True) if only4true_showers else getattr(ev, showers2use_name)
     if not _showers:
         if debug:
             color_msg("No showers found in the event", color="red", indentLevel=1)

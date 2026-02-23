@@ -11,44 +11,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import os
-
-# Load shower discriminator model
 import joblib
 
-_model_path = os.path.join(os.path.dirname(__file__), 'shower_discriminator.pth')
-_scaler_path = os.path.join(os.path.dirname(__file__), 'scaler.pkl')
-
-_shower_model = None
-_scaler = None
-
-
-if os.path.exists(_model_path):
-    class _ShowerNet(nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.network = nn.Sequential(
-                nn.Linear(97, 128), nn.ReLU(), nn.Dropout(0.3),
-                nn.Linear(128, 64), nn.ReLU(), nn.Dropout(0.3),
-                nn.Linear(64, 32), nn.ReLU(),
-                nn.Linear(32, 1)
-            )
-        def forward(self, x):
-            return self.network(x)
-
-    _shower_model = _ShowerNet()
-    _shower_model.load_state_dict(torch.load(_model_path, map_location='cpu'))
-    _shower_model.eval()
-
-    # Load scaler
-    if os.path.exists(_scaler_path):
-        _scaler = joblib.load(_scaler_path)
-    else:
-        warnings.warn("WARNING: scaler.pkl NOT FOUND. NN filtering will produce meaningless output!")
-
-
-
-def build_fwshowers(ev: Event, threshold: Optional[List[int]] = None, debug: Optional[bool] = False, 
-                   debug_step: Optional[int] = 4, use_NN_filter: Optional[bool] = True, debug_path: Optional[str] = "./results") -> None:
+def build_fwshowers(ev: Event, threshold: Optional[List[int]] = None, name: Optional[str] = "fwshowers",
+                    debug: Optional[bool] = False, debug_step: Optional[int] = 4, debug_path: Optional[str] = "./results") -> None:
     """
     Emulate the behavior of shower reconstruction in FPGA firmware.
     
@@ -71,9 +37,6 @@ def build_fwshowers(ev: Event, threshold: Optional[List[int]] = None, debug: Opt
             "Skipping firmware shower building."
         )
         return
-
-    # Prepare output container
-    setattr(ev, "fwshowers", [])
 
     # Handle missing threshold (keep behavior flexible; adjust defaults if your project expects otherwise)
     if threshold is None:
@@ -162,6 +125,7 @@ def build_fwshowers(ev: Event, threshold: Optional[List[int]] = None, debug: Opt
     # Second pass: build showers per active region
     # -------------------------
     ish = 0
+    showers = []
     for (wh, sc, st, sl) in Active_regions:
         iwh = wh + 2
         isl = sl - 1
@@ -212,21 +176,10 @@ def build_fwshowers(ev: Event, threshold: Optional[List[int]] = None, debug: Opt
 
         _shower.matched_tps = []
 
-        if use_NN_filter and _shower_model is not None and _scaler is not None:
-            profile_np = _shower.shower_profile.astype(np.float32).reshape(1, -1)
-            profile_scaled = _scaler.transform(profile_np)
-            x = torch.tensor(profile_scaled, dtype=torch.float32)
-            with torch.no_grad():
-                logits = _shower_model(x)
-                prob = torch.sigmoid(logits).item()
-            _shower.prediction_value = prob
-            _shower.isnot_dropped = prob > 0.5
-        else:
-            _shower.prediction_value = None
-            _shower.isnot_dropped = True
-
-        ev.fwshowers.append(_shower)
+        showers.append(_shower)
         ish += 1
+
+    setattr(ev, name, showers)
 
 def _process_superlayer(ev_BXs: List[int], digis_df: DataFrame, threshold: int) -> Tuple[bool, int, int, ndarray]:
     """
@@ -280,7 +233,7 @@ def _process_superlayer(ev_BXs: List[int], digis_df: DataFrame, threshold: int) 
     return showered, nHits, sBX, num_hits_history
 
 
-def build_real_showers(ev: Event, threshold: Optional[int] = None,Filtersimhits:Optional[bool] = True, debug: Optional[bool] = False) -> None:
+def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 = False, Filtersimhits:Optional[bool] = True, debug: Optional[bool] = False) -> None:
     """
     Build real showers based on simhit information.
     
@@ -308,6 +261,8 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None,Filtersimhits:
     indexs = simhits_locs.union(digis_locs)
 
     for wh, sc, st, sl in indexs:
+        if sl == 2 and not include_sl2:
+            continue
         simhits_sdf = DataFrame([simhit.__dict__ for simhit in ev.filter_particles("simhits", wh=wh, sc=sc, st=st, sl=sl)])
         digis_sdf = DataFrame([digi.__dict__ for digi in ev.filter_particles("digis", wh=wh, sc=sc, st=st, sl=sl)])
         
@@ -333,13 +288,13 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None,Filtersimhits:
             # at least 1 electron hit
             are_electron_hits = len(simhits_sdf.loc[simhits_sdf["particle_type"].abs() == 11]) > 0
             # hits are spread out in the chamber
-            spread = simhits_sdf["w"].std()**2 > 1
-            # are duplicated matched segments
-            matched_segments = []#[seg for gm in ev.genmuons for seg in getattr(gm, 'matched_segments', [])]
-            if matched_segments:
-                are_duplicated_segments = len(matched_segments) > len(get_unique_locs(matched_segments, loc_ids=["wh", "sc", "st"]))
-            else:
-                are_duplicated_segments = False # -- for G4 DTNtuples there are no segments
+            spread = max(simhits_sdf["w"]) - min(simhits_sdf["w"]) >= 2 #simhits_sdf["w"].std()**2 > 1
+            # # are duplicated matched segments
+            # matched_segments = []#[seg for gm in ev.genmuons for seg in getattr(gm, 'matched_segments', [])]
+            # if matched_segments:
+            #     are_duplicated_segments = len(matched_segments) > len(get_unique_locs(matched_segments, loc_ids=["wh", "sc", "st"]))
+            # else:
+            #     are_duplicated_segments = False # -- for G4 DTNtuples there are no segments
 
             if pass_thr:
                 if debug: color_msg(f'spread: {spread} --> {simhits_sdf["w"].std()**2}', "purple", indentLevel=2)
@@ -347,24 +302,22 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None,Filtersimhits:
                     shower_type = 1
                 elif are_electron_hits and spread:
                     shower_type = 2
-                elif are_duplicated_segments:
-                    shower_type = 3
+                # elif are_duplicated_segments:
+                #     shower_type = 3
                 else:
                     continue
                 _build_shower = True
 
-        # elif not digis_sdf.empty:
-        #     digis_sdf = digis_sdf[["l", "w"]].drop_duplicates()
-        #     # conditions...
-        #     pass_thr = len(digis_sdf) >= thr
-        #     # hits are spread out in the chamber
-        #     std_ = digis_sdf["w"].std()**2
-        #     spread = std_ > 1 and std_ < 5
-        #     if debug: color_msg(f'spread: {spread} --> {std_}', "purple", indentLevel=2)
-        #     if debug: color_msg(f'iqr: {digis_sdf["w"].quantile(0.25)}, {digis_sdf["w"].quantile(0.75)}', "purple", indentLevel=2)
-        #     if len(digis_sdf) >= thr and spread:
-        #         shower_type = 4
-        #         _build_shower = True
+        elif not digis_sdf.empty:
+            digis_sdf = digis_sdf[["l", "w"]].drop_duplicates()
+            # conditions...
+            pass_thr = len(digis_sdf) >= thr
+            # hits are spread out in the chamber
+            d = max(digis_sdf["w"]) - min(digis_sdf["w"])
+            spread = d > 4 and d < 10
+            if len(digis_sdf) >= thr and spread:
+                shower_type = 4
+                _build_shower = True
         
         if _build_shower:
             _index = ev.realshowers[-1].index + 1 if ev.realshowers else 0
@@ -383,7 +336,7 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None,Filtersimhits:
                     indentLevel=2,
                 )
 
-def analyze_fwshowers(ev: Event) -> None:
+def analyze_fwshowers(ev: Event, showers2use_name: str = "fwshowers") -> None:
     """
     Determine if firmware showers are real by comparing with real showers.
     
@@ -392,19 +345,20 @@ def analyze_fwshowers(ev: Event) -> None:
     :return: None, modifies each fwshower by adding is_true_shower attribute
     :rtype: None
     """
-    if not hasattr(ev, "fwshowers") or not hasattr(ev, "realshowers"):
-        warnings.warn("Either 'fwshowers' or 'realshowers' are not included in _PARTICLE_TYPES. Please check the config YAML file. Skipping shower analysis.")
+    if not hasattr(ev, showers2use_name) or not hasattr(ev, "realshowers"):
+        warnings.warn(f"Either '{showers2use_name}' or 'realshowers' are not included in _PARTICLE_TYPES. Please check the config YAML file. Skipping shower analysis.")
         return
 
-    for shower in ev.fwshowers:   
+    for shower in getattr(ev, showers2use_name):   
         wh, sc, st , sl = shower.wh, shower.sc, shower.st, shower.sl
         if ev.filter_particles("realshowers", wh=wh, sc=sc, st=st, sl=sl):
             shower.is_true_shower = True
         else:
             shower.is_true_shower = False
 
+nn_cache = {}
 
-def drop_fwshowers(ev: Event) -> None:
+def drop_fwshowers(ev: Event, showers2use_name: str = "fwshowers") -> None:
     """
     Drop firmware showers that are predicted as not real by the NN filter.
     
@@ -413,8 +367,66 @@ def drop_fwshowers(ev: Event) -> None:
     :return: None, modifies the event by removing fwshowers that are predicted as not real
     :rtype: None
     """
-    if not hasattr(ev, "fwshowers"):
-        warnings.warn("'fwshowers' is not included in _PARTICLE_TYPES. Please check the config YAML file. Skipping shower dropping.")
+    if not hasattr(ev, showers2use_name):
+        raise AttributeError(f"ERROR: '{showers2use_name}' attribute not found in event. Please check the config YAML file and ensure that the shower builder is correctly configured to create '{showers2use_name}'.")
+    showers = getattr(ev, showers2use_name)
+    if not showers:
         return
 
-    ev.fwshowers = [shower for shower in ev.fwshowers if getattr(shower, 'isnot_dropped', True)]
+    _shower_model = None
+    _scaler = None
+
+    if not nn_cache:
+        # Load shower discriminator model
+        _model_path = os.path.join(os.path.dirname(__file__), 'shower_discriminator.pth')
+        _scaler_path = os.path.join(os.path.dirname(__file__), 'scaler.pkl')
+
+        if not os.path.exists(_model_path):
+            raise FileNotFoundError(f"ERROR: shower_discriminator.pth NOT FOUND at {_model_path}. NN filtering cannot be applied!")
+
+        class _ShowerNet(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.network = nn.Sequential(
+                    nn.Linear(97, 128), nn.ReLU(), nn.Dropout(0.3),
+                    nn.Linear(128, 64), nn.ReLU(), nn.Dropout(0.3),
+                    nn.Linear(64, 32), nn.ReLU(),
+                    nn.Linear(32, 1)
+                )
+            def forward(self, x):
+                return self.network(x)
+
+        _shower_model = _ShowerNet()
+        _shower_model.load_state_dict(torch.load(_model_path, map_location='cpu'))
+        _shower_model.eval()
+
+        # Load scaler
+        if os.path.exists(_scaler_path):
+            _scaler = joblib.load(_scaler_path)
+        else:
+            warnings.warn("WARNING: scaler.pkl NOT FOUND. NN filtering will produce meaningless output!")
+
+        nn_cache['model'] = _shower_model
+        nn_cache['scaler'] = _scaler
+    else:
+        _shower_model = nn_cache.get('model')
+        _scaler = nn_cache.get('scaler')
+
+    if _shower_model is None:
+        raise RuntimeError("ERROR: Shower discriminator model failed to load. NN filtering cannot be applied!")
+
+    showers_to_keep = []
+
+    for _shower in showers:
+        profile_np = np.array(_shower.shower_profile).astype(np.float32).reshape(1, -1)
+        profile_scaled = _scaler.transform(profile_np) if _scaler else profile_np  # If scaler failed to load, use unscaled features (not recommended)
+        x = torch.tensor(profile_scaled, dtype=torch.float32)
+        with torch.no_grad():
+            logits = _shower_model(x)
+            prob = torch.sigmoid(logits).item()
+        _shower.prediction_value = prob
+        _shower.isnot_dropped = prob > 0.5
+        if _shower.isnot_dropped:
+            showers_to_keep.append(_shower)
+
+    setattr(ev, showers2use_name, showers_to_keep)

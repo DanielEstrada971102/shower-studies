@@ -23,11 +23,11 @@ def match_shower_genmuons(shower, highpt_threshold=100):
 
 # ----- This is to be used as preprocesor function in the config file -----
 
-def highpt_showers_identifier(event, highpt_threshold=100):
+def highpt_showers_identifier(event, highpt_threshold=100, showers2use_name="fwshowers"):
     """
     Identifies high pt showers in the event.
     """
-    for shower in event.fwshowers:
+    for shower in getattr(event, showers2use_name):
         match_shower_genmuons(shower, highpt_threshold)
 
 # ------------------------------------------------------------------------
