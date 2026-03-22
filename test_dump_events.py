@@ -1,5 +1,6 @@
 from dtpr.base.config import RUN_CONFIG
 from dtpr.base import NTuple
+from dtpr.utils.dumper import dump_events
 import os
 
 def main():
@@ -10,12 +11,7 @@ def main():
 
     ntuple = NTuple(input_file_path)
 
-    for index, event in enumerate(ntuple.events):
-        if event is None:
-            continue
-        print(event)
-        if index >= 3:
-            break
+    dump_events(ntuple.events[:10], "test_dump_events_output.root")
 
 if __name__ == "__main__":
     main()
