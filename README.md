@@ -53,7 +53,69 @@ make dev-local # Optionally set the paths to the local clones with MPLDTS_PATH=.
 **Note**: If you are using the `dev` or `dev-local` targets, remember to activate the virtual environment after the installation, and in case you need to delete it, just deactivate it and remove with `make delete-env`.
 
 > [!IMPORTANT]
-> Since this repository is not a package, path issues may arise when trying to import function from other directories. To avoid this, it is recommended to add the current repository to the `PYTHONPATH` environment variable. You can get the command to do this with `make set-path`.
+> - Since this repository is not a package, path issues may arise when trying to import function from other directories. To avoid this, it is recommended to add the current repository to the `PYTHONPATH` environment variable. You can get the command to do this with `make set-path`.
+> - If you are working inside a UniOvi Tier-3 and want to use the clusters to run your jobs, normal virtual environments could be problematic to initialize in each node, so, 
+> it is recommended firt creating a conda environment and there use the no dev targets of the Makefile, which will install the dependencies in the conda environment.
+>   ```shell
+>   eval "$(/nfs/fanae/anaconda3/bin/conda shell.bash hook)" && conda deactivate # enable conda in tier-3
+>   conda create -n [ENV_NAME] -c conda-forge python=[VERSION >3.11 is recommended] root # this last ensure to have PyROOT available
+>   conda activate [ENV_NAME]
+>   make install ...
+>   ```
 
 > [!TIP]
 > If it is just first time using the `DTPatternRecognition` tool, you can take a look at [this example](test.py).
+
+## Batch Job Launcher
+
+Two helper scripts to run a command over many ROOT files in parallel, split into chunks.
+
+
+### `run_cmd_on_files.sh`
+
+Runs a command over a list of files, with optional conda activation.
+```sh
+bash run_cmd_on_files.sh "<command>" "<args>" [conda_env] <file1> <file2> ...
+```
+
+| Argument | Description |
+|---|---|
+| `<command>` | Command to execute (e.g. `python dump_events.py`) |
+| `<args>` | Extra arguments passed before `-i` |
+| `[conda_env]` | Conda env to activate. Use `none` to skip |
+| `<file1> ...` | Input files, passed as `-i <files...>` |
+
+### `launch_cmd_on_chunks.sh`
+
+Resolves file patterns, splits into chunks, and launches one job per chunk.
+
+**1. Edit the config block** at the top of the script:
+
+| Variable | Description |
+|---|---|
+| `INPUTS` | Files, directories, or glob patterns |
+| `CHUNK_SIZE` | Number of files per job |
+| `COMMAND` / `ARGS` | Command to run (`__TASK_ID__` in `ARGS` is replaced by the chunk index) |
+| `CONDA_ENV`, `LOG_DIR`, `CPUS` | Environment and resource settings |
+
+**2. Run:**
+```sh
+bash launch_cmd_on_chunks.sh [options]
+
+Options:
+  --mode <slurm|screen|local>  Execution mode (default: local)
+  --run <N>                    Target a specific run directory (run_N)
+  --dry-run                    Print commands without running them
+  --retry                      Re-run only chunks with a non-empty .err log
+                               Uses last run dir unless --run is specified
+```
+
+**Examples:**
+```sh
+bash launch_cmd_on_chunks.sh --mode slurm --dry-run
+bash launch_cmd_on_chunks.sh --mode screen
+bash launch_cmd_on_chunks.sh --retry
+bash launch_cmd_on_chunks.sh --retry --run 3
+```
+
+**Logs** are written to `LOG_DIR/run_<N>/` as `job_<id>.sh`, `job_<id>.out`, and `job_<id>.err`.

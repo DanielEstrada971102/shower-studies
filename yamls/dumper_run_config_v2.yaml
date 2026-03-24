@@ -1,0 +1,14 @@
+# V2 used to process dtntuples v1.2 and get results with fix from 2026 work.
+ntuple_tree_name: '/dtNtupleProducer/DTTREE'
+
+ntuple_selectors: !include selectors/ntuple_selectors_v0.yaml
+
+ntuple_preprocessors: !include preprocessors/ntuple_preprocessors_v2_dumper.yaml
+
+particle_types:
+  digis: !include particles/digis.yaml
+  segments: !include particles/segments.yaml
+  genmuons: !include particles/genmuons.yaml
+  cmssw_showers: !include particles/cmssw_showers.yaml
+  simhits: !include particles/simhits.yaml
+  tps: !include particles/tps_v2.yaml
