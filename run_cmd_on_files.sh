@@ -53,4 +53,4 @@ printf "%s\n" "${FILES[@]}"
 # -----------------
 # RUN
 # -----------------
-$COMMAND $ARGS -i "${FILES[@]}"
+time $COMMAND $ARGS -i "${FILES[@]}"

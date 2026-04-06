@@ -42,9 +42,9 @@ def match_genmuon_offline_segment(gm: Particle, seg: Particle, max_dPhi: float, 
         and seg.nHits_phi >= 4
         and (seg.nHits_z >= 4 or isMB4)
     )
-    seg.matched_genmuon = 0.5
+    seg.matched_genmuon = False
     if matches:
-        seg.matched_genmuon = 1.5
+        seg.matched_genmuon = True
         append_to_matched_list(gm, 'matched_segments', seg)
         append_to_matched_list(seg, 'matched_genmuons', gm)
 

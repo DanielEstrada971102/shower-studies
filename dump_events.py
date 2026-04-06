@@ -20,7 +20,7 @@ def main():
     ntuple = NTuple(args.inputs, CONFIG=config)
     events = ntuple.events[:args.maxevents] if args.maxevents > 0 else ntuple.events
     ForceRNTuple = False # Set to True if you want to force the use of RNTuple format for dumping events
-    dump_events(events, args.output, fRNTuple=ForceRNTuple)
+    dump_events(events, args.output, fRNTuple=ForceRNTuple, dump_yaml_schema=True)
 
 
 if __name__ == "__main__":

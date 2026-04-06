@@ -3,7 +3,7 @@ ntuple_tree_name: '/dtNtupleProducer/DTTREE'
 
 ntuple_selectors: !include selectors/ntuple_selectors_v0.yaml
 
-ntuple_preprocessors: !include preprocessors/ntuple_preprocessors_v2_dumper.yaml
+ntuple_preprocessors: !include preprocessors/ntuple_preprocessors_v2_dumper_jpshowers.yaml
 
 particle_types:
   digis: !include particles/digis.yaml

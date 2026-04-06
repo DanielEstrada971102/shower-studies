@@ -4,12 +4,12 @@
 # USER CONFIG - EDIT ONLY THIS SECTION
 # =========================
 INPUTS=(
-    "/nfs/fanae/user/jprado/Prado/Firmware_Emulator_test/Root_files/*_[0-2].root"
+    "/nfs/fanae/user/jprado/Prado/Firmware_Emulator_test/Root_files/"
 )
 
-CHUNK_SIZE=1 # number of files per chunk
+CHUNK_SIZE=24 # number of files per chunk
 COMMAND="python dump_events.py" # command to run on each chunk, should accept file list as arguments with -i 
-ARGS="-o roots/events_dumped___TASK_ID__.root --maxevents=10 -cf yamls/dumper_run_config_v2.yaml" # additional args for the command, __TASK_ID__ will be replaced by the chunk id (starting from 0)
+ARGS="-o ntuples/dumped-roots-jpshowers/events_dumped___TASK_ID__.root -cf yamls/dumper_run_config_v2.yaml" # additional args for the command, __TASK_ID__ will be replaced by the chunk id (starting from 0)
 CONDA_ENV="showers-destrada" # name of conda environment to activate before running the command, set to "none" if env not needed
 LOG_DIR="logs" # directory to store logs, each chunk will have job_<id>.out and job_<id>.err files
 CPUS=1 # number of CPUs to request for each job (only applies if USE_SLURM=true)
@@ -213,7 +213,7 @@ for id in "${CHUNK_IDS[@]}"; do
     else 
         # -------- SLURM MODE --------
         if [ "$USE_SLURM" = true ]; then
-            SBATCH_CMD=(sbatch --job-name=chunk_$id --output=$RUN_DIR/job_$id.out --error=$RUN_DIR/job_$id.err --cpus-per-task=$CPUS $EXEC_FILE)
+            SBATCH_CMD=(sbatch --job-name=showers_$id --output=$RUN_DIR/job_$id.out --error=$RUN_DIR/job_$id.err --cpus-per-task=$CPUS $EXEC_FILE)
 
             if [ "$DRY_RUN" = true ]; then
                 echo ""
@@ -226,7 +226,7 @@ for id in "${CHUNK_IDS[@]}"; do
 
         else
         # -------- LOCAL MODE + Screen --------
-            SESSION="job_$id"
+            SESSION="showers_$id"
 
             INNER_CMD="bash $EXEC_FILE > $RUN_DIR/job_$id.out 2> $RUN_DIR/job_$id.err"
             SCREEN_CMD=(screen -dmS $SESSION bash -c "$INNER_CMD")

@@ -233,7 +233,7 @@ def _process_superlayer(ev_BXs: List[int], digis_df: DataFrame, threshold: int) 
     return showered, nHits, sBX, num_hits_history
 
 
-def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 = False, Filtersimhits:Optional[bool] = True, debug: Optional[bool] = False) -> None:
+def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 = False, Filtersimhits:Optional[bool] = True, resultColName: Optional[str] = "realshowers", debug: Optional[bool] = False) -> None:
     """
     Build real showers based on simhit information.
     
@@ -243,6 +243,8 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
     :type threshold: Optional[int]
     :param Filtersimhits: Whether to filter simhits based on corresponding digis
     :type Filtersimhits: Optional[bool]
+    :param resultColName: The name of the column to store the realshowers
+    :type resultColName: Optional[str]
     :param debug: Whether to enable debugging outputs
     :type debug: bool
     :return: None, modifies the event by adding realshowers attribute
@@ -253,7 +255,7 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
         warnings.warn("'simhits' is not included in _PARTICLE_TYPES. Please check the config YAML file. Skipping real shower building.")
         return
 
-    ev.realshowers = []
+    setattr(ev, resultColName, [])  # initialize the realshowers list in the event
     thr = 8 if threshold is None else threshold
 
     simhits_locs = get_unique_locs(particles=ev.simhits, loc_ids=["wh", "sc", "st", "sl"])
@@ -320,7 +322,8 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
                 _build_shower = True
         
         if _build_shower:
-            _index = ev.realshowers[-1].index + 1 if ev.realshowers else 0
+            _realshowers_coll = getattr(ev, resultColName)
+            _index = _realshowers_coll[-1].index + 1 if _realshowers_coll else 0
             _shower = Particle(index=_index, wh=wh, sc=sc, st=st, name="Shower") 
             _shower.shower_type = shower_type
             _shower.sl = sl
@@ -328,7 +331,7 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
             _shower.ndigis = len(digis_sdf.drop_duplicates(["l", "w"])) if not digis_sdf.empty else 0
             _shower.min_wire = int(min(simhits_sdf["w"].min(), digis_sdf["w"].min())) if not simhits_sdf.empty and not digis_sdf.empty else (int(simhits_sdf["w"].min()) if not simhits_sdf.empty else int(digis_sdf["w"].min()))
             _shower.max_wire = int(max(simhits_sdf["w"].max(), digis_sdf["w"].max())) if not simhits_sdf.empty and not digis_sdf.empty else (int(simhits_sdf["w"].max()) if not simhits_sdf.empty else int(digis_sdf["w"].max()))
-            ev.realshowers.append(_shower)
+            _realshowers_coll.append(_shower)
             if debug:
                 color_msg(
                     f'Realshower detected in (wh, sc, st, sl): ({wh}, {sc}, {st}, {sl}) - type: {shower_type}',
@@ -336,7 +339,7 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
                     indentLevel=2,
                 )
 
-def analyze_fwshowers(ev: Event, showers2use_name: str = "fwshowers") -> None:
+def analyze_fwshowers(ev: Event, showers2use_name: str = "fwshowers", realshowers2use_name: str = "realshowers") -> None:
     """
     Determine if firmware showers are real by comparing with real showers.
     
@@ -345,13 +348,13 @@ def analyze_fwshowers(ev: Event, showers2use_name: str = "fwshowers") -> None:
     :return: None, modifies each fwshower by adding is_true_shower attribute
     :rtype: None
     """
-    if not hasattr(ev, showers2use_name) or not hasattr(ev, "realshowers"):
-        warnings.warn(f"Either '{showers2use_name}' or 'realshowers' are not included in _PARTICLE_TYPES. Please check the config YAML file. Skipping shower analysis.")
+    if not hasattr(ev, showers2use_name) or not hasattr(ev, realshowers2use_name):
+        warnings.warn(f"Either '{showers2use_name}' or '{realshowers2use_name}' are not included in _PARTICLE_TYPES. Please check the config YAML file. Skipping shower analysis.")
         return
 
     for shower in getattr(ev, showers2use_name):   
         wh, sc, st , sl = shower.wh, shower.sc, shower.st, shower.sl
-        if ev.filter_particles("realshowers", wh=wh, sc=sc, st=st, sl=sl):
+        if ev.filter_particles(realshowers2use_name, wh=wh, sc=sc, st=st, sl=sl):
             shower.is_true_shower = True
         else:
             shower.is_true_shower = False

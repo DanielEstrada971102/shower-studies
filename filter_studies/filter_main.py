@@ -219,7 +219,7 @@ def _analyzer(showers, tps, shower_seg_version=2, debug=False, plot=False, cover
     if plot:
         make_plot(_things_to_plot)
 
-def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, debug=False, plot=False,cover_full_cells=False, showers2use_name="fwshowers"):
+def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, debug=False, plot=False,cover_full_cells=False, showers2use_name="fwshowers", tps2use_name="tps"):
     """Divide event into sectors and analyze showers/TPs for each sector."""
     # simple filter in case only true showers are needed, or to avoid analyzing events without showers
     _showers = ev.filter_particles(showers2use_name, is_true_shower=True) if only4true_showers else getattr(ev, showers2use_name)
@@ -246,7 +246,7 @@ def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, de
         # get the Trigger Primitives
         # ignore tps that live in the chamber of the shower
         tps = [
-            tp for tp in ev.tps 
+            tp for tp in getattr(ev, tps2use_name)
             if tp.sc in neighbors_sec # Just take TPs from the sectors that lives in the BF sector
         ]
         if not tps:
