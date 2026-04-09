@@ -17,15 +17,20 @@ def ray_seg_matching(p, d, a, b):
     :rtype: bool
     .. note:: The function uses Cramer's rule to solve the system of equations that determines the intersection point.
     """
+    p= np.array(p) if not isinstance(p, np.ndarray) else p
+    d = np.array(d) if not isinstance(d, np.ndarray) else d
+    a = np.array(a) if not isinstance(a, np.ndarray) else a
+    b = np.array(b) if not isinstance(b, np.ndarray) else b
+
     v1 = b - a
     v2 = p - a
 
     # cramer's rule
-    denom = np.linalg.det(np.array([v1, d]).T)
+    denom = np.linalg.det(np.array([v1, -d]).T)
     if denom == 0:
         # The ray and the segment are parallel
         return False
-    u = np.linalg.det(np.array([v2, d]).T) / denom
+    u = np.linalg.det(np.array([v2, -d]).T) / denom
     t = np.linalg.det(np.array([v1, v2]).T) / denom
 
     if 0 <= u <= 1:
@@ -116,6 +121,7 @@ def main():
         print("NO INTERSECTS")
 
     ax.add_patch(rect)
+    ax.set_aspect("equal")
     plt.show()
 
 if __name__ == "__main__":

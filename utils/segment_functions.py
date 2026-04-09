@@ -20,15 +20,21 @@ def match_offline_AMtp(segment: Particle, tp: Particle, max_dPhi: Optional[float
         raise AttributeError("Segment must have 'wh', 'sc', 'st', 'phi', and 'phires_conv' attributes.")
     if any([not hasattr(tp, key) for key in ['wh', 'sc', 'st', 'phi', 'phires_conv', 'BX']]):
         raise AttributeError("Trigger primitive must have 'wh', 'sc', 'st', 'phi', 'phires_conv', and 'BX' attributes.")
-    # Fix issue with sector numbering
+
     seg_sc = segment.sc
     if seg_sc == 13: 
         seg_sc = 4
     elif seg_sc == 14:
         seg_sc = 10
 
+    tp_sc = tp.sc
+    if tp_sc == 13: 
+        tp_sc = 4 
+    elif tp_sc == 14: 
+        tp_sc = 10
+
     # Match only if TP and segment are in the same chamber
-    if tp.wh == segment.wh and tp.sc == seg_sc and tp.st == segment.st:
+    if tp.wh == segment.wh and tp_sc == seg_sc and tp.st == segment.st:
         # In this case, they are in the same chamber: match dPhi
         # -- Use a conversion factor to express phi in radians
         trigGlbPhi = tp.phi / tp.phires_conv + math.pi / 6 * (tp.sc - 1)

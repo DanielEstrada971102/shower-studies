@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 from pandas import DataFrame
 from matplotlib import colors
 from matplotlib.patches import Polygon
-from mpldts.geometry import Station, AMDTSegments
+from mpldts.geometry import AMDTSegments
+from mpldts.geometry.station import STATION_CACHE
 from mpldts.patches import DTStationPatch, MultiDTSegmentsPatch
 from dtpr.base import NTuple
 from dtpr.utils.functions import color_msg, get_unique_locs
@@ -22,7 +23,8 @@ segs_kwargs = {
     "norm": segs_norm,
 }
 
-_built_stations = {}
+# Cache for built Station objects to avoid redundant constructions
+Station = STATION_CACHE.get 
 _built_stations_patches = {}
 
 BF_neighbor_sectors = {}
@@ -37,16 +39,6 @@ for sector in range(1, 13):
     if sector in [9, 10, 11]:
         neighbors_sec.append(14)
     BF_neighbor_sectors[f"BF{sector}"] = neighbors_sec
-
-@cache
-def build_station(wh, sc, st):
-    """Build or retrieve a Station object for given wheel, sector, station."""
-    key = (wh, sc, st)
-    if key in _built_stations:
-        return _built_stations[key]
-    _dt = Station(wheel=wh, sector=sc, station=st)
-    _built_stations[key] = _dt
-    return _dt
 
 def plot_rectangle(ax, rect, color='r', alpha=0.2):
     """Plot a rectangle (polygon) on the given axes."""
@@ -113,17 +105,15 @@ def get_shower_rectangle(dt, shower, version=1):
     rect = dt.transformer.transform(_rect, from_frame="Station", to_frame="CMS")
     return rect
 
-def get_shower_segment(dt, shower, version=1):
+def get_shower_segment(dt, shower, version=1, cover_full_cells=True):
     """
     Get the segment representing the shower in CMS coordinates.
     """
-    if version == 1: # compute using the wires profile
-        # dump profile to wires numbers
+    if version == 1:  # compute using the wires profile
         try:
             wires = [wn for wn, nh in enumerate(shower.wires_profile) for _ in range(nh)]
             q75, q25 = map(int, np.percentile(wires, [75, 25]))
-            # use only the wires in the range [q25, q75]
-            wires = sorted([wire for wire in wires if wire >= q25 and wire <= q75 ])
+            wires = sorted([wire for wire in wires if wire >= q25 and wire <= q75])
             wires[-1] = wires[-1] + 1 if wires[-1] == wires[0] else wires[-1]
 
             first_wire = wires[0] if wires[0] >= dt.super_layer(shower.sl).layer(2)._first_cell_id else dt.super_layer(shower.sl).layer(2)._first_cell_id
@@ -133,11 +123,27 @@ def get_shower_segment(dt, shower, version=1):
         except:
             first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.min_wire)
             last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.max_wire)
-    if version == 2: # compute using max and min wire numbers
-        first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.min_wire)
-        last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.max_wire)
 
-    return np.array([first_shower_cell.global_center, last_shower_cell.global_center]) # a, b
+        a = np.array(first_shower_cell.global_center)
+        b = np.array(last_shower_cell.global_center)
+
+    if version == 2:  # compute using max and min wire numbers
+        first_wire = shower.min_wire
+        last_wire = shower.max_wire
+        first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(first_wire)
+        last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(last_wire)
+
+        a = np.array(first_shower_cell.global_center)
+        b = np.array(last_shower_cell.global_center)
+
+        if cover_full_cells:
+            half_cell = 4.2 / 2.0 # DT cell width in cm
+            # Determine the x-direction sign from a to b to expand correctly
+            sign = np.sign(b[0] - a[0]) if b[0] != a[0] else 1.0
+            a[0] -= sign * half_cell
+            b[0] += sign * half_cell
+
+    return np.array([a, b])
 
 def match_tp_to_shower(segment, shower):
     """Match AM TP to a given shower"""
@@ -156,12 +162,12 @@ def _analyzer(showers, tps, shower_seg_version=2, debug=False, plot=False):
     for shower in showers:
         wh, sc, st = shower.wh, shower.sc, shower.st
 
-        _tps2use = [tp for tp in tps if tp.wh == wh]
+        _tps2use = [tp for tp in tps if tp.wh == wh and tp.st!= st] # Just take TPs from the same wheel as the shower, but different station
         if not _tps2use:
             continue  # skip if no TPs in the same wheel as the shower --> THIS DEFINES THAT THIS MATCHING IS LIMITED TO THE PHI VIEW
 
         # to avoid building the same station multiple times
-        _dt = build_station(wh, sc, st)
+        _dt = Station(wh, sc, st)
         if plot and (wh, sc, st) not in _things_to_plot["dts"]:
             _things_to_plot["dts"][(wh, sc, st)] = _dt
 
@@ -176,7 +182,7 @@ def _analyzer(showers, tps, shower_seg_version=2, debug=False, plot=False):
         # build dicts with tps information
         _tps_info = []
         for _tp in _tps2use:
-            _parent_dt = build_station(_tp.wh, _tp.sc, _tp.st)
+            _parent_dt = Station(_tp.wh, _tp.sc, _tp.st)
             _tps_info.append({
                 "parent": _parent_dt,  # parent station of the TP
                 "index": _tp.index,
@@ -241,7 +247,6 @@ def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, de
         tps = [
             tp for tp in ev.tps 
             if tp.sc in neighbors_sec # Just take TPs from the sectors that lives in the BF sector
-            and (tp.wh, tp.sc, tp.st) not in showers_locs # Ignore TPs that live in the same chamber as the showers (is this correct?)
         ]
         if not tps:
             if debug:
@@ -263,7 +268,7 @@ def main():
         os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
-                "run_config_4visualizer.yaml"
+                "run_config.yaml"
             )
         )
     )
@@ -276,7 +281,7 @@ def main():
         )
     ))
     debug = True  # Set to True to enable debug mode
-    only4true_showers = True  # Set to True to analyze only true showers
+    only4true_showers = False  # Set to True to analyze only true showers
     plot = True  # Set to True to enable plotting
 
     for i, ev in enumerate(ntuple.events):
