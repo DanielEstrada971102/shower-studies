@@ -6,7 +6,9 @@ sys.path.append("..")  # Adjust the path to include the parent directory
 from dtpr.utils.functions import get_unique_locs
 from utils.functions import stations, get_best_matches
 # Histogram defined here
-# - 
+# - shower_nhits_dist: Distribution of number of hits for all FW showers
+# - tp_shower_nhits_dist: Distribution of number of hits for true positive showers  
+# - fp_shower_nhits_dist: Distribution of number of hits for false positive showers
 
 histos = {}
 
@@ -33,6 +35,85 @@ histos.update({
         "func": lambda reader: [gm.pt for gm in reader.genmuons],
         "numdef": lambda reader: [len(getattr(gm, 'matched_showers', [])) > 0 for gm in reader.genmuons],
     },
+
+    "shower_BX_dist": {
+        "type": "distribution",
+        "histo": r.TH1D("shower_BX_dist", r';BX;', 41, -0.5, 40.5),
+        "func": lambda reader: [shower.BX for shower in reader.fwshowers if shower.is_highpt_shower],
+    },
+
+    "shower_BX_dist_all": {
+        "type": "distribution",
+        "histo": r.TH1D("shower_BX_dist_all", r';BX;', 41, -0.5, 40.5),
+        "func": lambda reader: [shower.BX for shower in reader.fwshowers],
+    },
+    
+    "shower_BX_avg": {
+        "type": "distribution",
+        "histo": r.TH1D("shower_BX_avg", r';Average BX;', 41, -0.5, 40.5),
+        "func": lambda reader: [shower.average_BX_hits for shower in reader.fwshowers if shower.average_BX_hits is not None],
+    },
+
+    "Shower_BX_method1": {
+        "type": "distribution",
+        "histo": r.TH1D("Shower_BX_method1", r';Method 1 BX;', 41, -0.5, 40.5),
+        "func": lambda reader: [shower.BXM1 for shower in reader.fwshowers if hasattr(shower, 'BXM1') and shower.BXM1 is not None],
+    },
+
+    "Shower_BX_method2": {
+        "type": "distribution",
+        "histo": r.TH1D("Shower_BX_method2", r';Method 2 BX;', 41, -0.5, 40.5),
+        "func": lambda reader: [shower.BXM2 for shower in reader.fwshowers if hasattr(shower, 'BXM2') and shower.BXM2 is not None],
+    },
+
+    "shower_digis_BX_dist": {
+        "type": "distribution",
+        "histo": r.TH1D("shower_digis_BX_dist", r';Digis BX;', 41, -0.5, 40.5),
+        "func": lambda reader: [hit.BX for shower in reader.fwshowers if hasattr(shower, 'digis') and shower.digis for hit in shower.digis if hasattr(hit, 'BX')],
+    },
+
+    "shower_wire_span": {
+        "type": "distribution",
+        "histo": r.TH1D("shower_wire_span", r';Wire Span (max_wire - min_wire);', 100, 0, 100),
+        "func": lambda reader: [shower.max_wire - shower.min_wire for shower in reader.fwshowers if hasattr(shower, 'max_wire') and hasattr(shower, 'min_wire') and shower.max_wire is not None and shower.min_wire is not None],
+    },
+
+    "shower_wire_span_highpt": {
+        "type": "distribution",
+        "histo": r.TH1D("shower_wire_span_highpt", r';Wire Span (max_wire - min_wire) - HighPt;', 100, 0, 100),
+        "func": lambda reader: [shower.max_wire - shower.min_wire for shower in reader.fwshowers if shower.is_highpt_shower and hasattr(shower, 'max_wire') and hasattr(shower, 'min_wire') and shower.max_wire is not None and shower.min_wire is not None],
+    },
+
+    "tp_wire_span": {
+        "type": "distribution",
+        "histo": r.TH1D("tp_wire_span", r';Wire Span (max_wire - min_wire) - TP;', 100, 0, 100),
+        "func": lambda reader: [shower.max_wire - shower.min_wire for shower in reader.fwshowers if shower.is_true_shower and hasattr(shower, 'max_wire') and hasattr(shower, 'min_wire') and shower.max_wire is not None and shower.min_wire is not None],
+    },
+
+    "fp_wire_span": {
+        "type": "distribution",
+        "histo": r.TH1D("fp_wire_span", r';Wire Span (max_wire - min_wire) - FP;', 100, 0, 100),
+        "func": lambda reader: [shower.max_wire - shower.min_wire for shower in reader.fwshowers if not shower.is_true_shower and hasattr(shower, 'max_wire') and hasattr(shower, 'min_wire') and shower.max_wire is not None and shower.min_wire is not None],
+    },
+
+    "shower_nhits_dist": {
+        "type": "distribution",
+        "histo": r.TH1D("shower_nhits_dist", r';Number of Hits;', 50, 0, 50),
+        "func": lambda reader: [getattr(shower, 'nDigis', getattr(shower, 'ndigis', 0)) for shower in reader.fwshowers if hasattr(shower, 'nDigis') or hasattr(shower, 'ndigis')],
+    },
+
+    "tp_shower_nhits_dist": {
+        "type": "distribution",
+        "histo": r.TH1D("tp_shower_nhits_dist", r';Number of Hits - TP;', 50, 0, 50),
+        "func": lambda reader: [getattr(shower, 'nDigis', getattr(shower, 'ndigis', 0)) for shower in reader.fwshowers if shower.is_true_shower and (hasattr(shower, 'nDigis') or hasattr(shower, 'ndigis'))],
+    },
+
+    "fp_shower_nhits_dist": {
+        "type": "distribution",
+        "histo": r.TH1D("fp_shower_nhits_dist", r';Number of Hits - FP;', 50, 0, 50),
+        "func": lambda reader: [getattr(shower, 'nDigis', getattr(shower, 'ndigis', 0)) for shower in reader.fwshowers if not shower.is_true_shower and (hasattr(shower, 'nDigis') or hasattr(shower, 'ndigis'))],
+    },
+        
     "AMTp_genmuon_tag_eff_pttrend_all": {
         "type": "eff",
         "histoDen": r.TH1D("AMTp_genmuon_tag_eff_pttrend_all_total", r';Showered GenMuon Pt;', 50, 0, 3335),

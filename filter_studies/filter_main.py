@@ -155,7 +155,7 @@ def match_tp_to_shower(segment, shower):
     # return ray_rect_matching(p, d, rect)
     return ray_seg_matching(p, d, a, b)
 
-def _analyzer(showers, tps, shower_seg_version=2, debug=False, plot=False):
+def _analyzer(showers, tps, shower_seg_version=2, debug=False, plot=False, cover_full_cells=False):
     """Analyze showers and TPs for a given event, optionally plotting results."""
     if plot:
         _things_to_plot = {"dts": {}, "showers": [], "tps": None}
@@ -174,7 +174,7 @@ def _analyzer(showers, tps, shower_seg_version=2, debug=False, plot=False):
 
         # get the rectangle for the shower
         # _rect = get_shower_rectangle(_dt, shower)
-        _shower_seg = get_shower_segment(_dt, shower, version=shower_seg_version)
+        _shower_seg = get_shower_segment(_dt, shower, version=shower_seg_version,cover_full_cells=cover_full_cells)
 
         if plot:
             # _things_to_plot["showers"].append(_rect)
@@ -219,7 +219,7 @@ def _analyzer(showers, tps, shower_seg_version=2, debug=False, plot=False):
     if plot:
         make_plot(_things_to_plot)
 
-def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, debug=False, plot=False):
+def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, debug=False, plot=False,cover_full_cells=False):
     """Divide event into sectors and analyze showers/TPs for each sector."""
     # simple filter in case only true showers are needed, or to avoid analyzing events without showers
     _showers = ev.filter_particles("fwshowers", is_true_shower=True) if only4true_showers else ev.fwshowers
@@ -260,7 +260,7 @@ def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, de
             continue
         if debug:
             color_msg("Analyzing...", color="yellow", indentLevel=1)
-        _analyzer(showers, tps, shower_seg_version, debug, plot) # this only analyze in Phi view
+        _analyzer(showers, tps, shower_seg_version, debug, plot, cover_full_cells=cover_full_cells) # this only analyze in Phi view
 
 def main():
     """Main entry point for running the filter analysis."""
@@ -303,3 +303,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    

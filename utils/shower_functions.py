@@ -7,10 +7,48 @@ from typing import Tuple, Optional, List
 from collections import deque
 from dtpr.base import Event, Particle
 from dtpr.utils.functions import color_msg, create_outfolder, get_unique_locs
+import numpy as np
+import torch
+import torch.nn as nn
+import os
+
+# Load shower discriminator model
+import joblib
+
+_model_path = os.path.join(os.path.dirname(__file__), 'shower_discriminator.pth')
+_scaler_path = os.path.join(os.path.dirname(__file__), 'scaler.pkl')
+
+_shower_model = None
+_scaler = None
 
 
-def build_fwshowers(ev: Event, threshold: Optional[int] = None, debug: Optional[bool] = False, 
-                   debug_step: Optional[int] = 4, debug_path: Optional[str] = "./results") -> None:
+if os.path.exists(_model_path):
+    class _ShowerNet(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.network = nn.Sequential(
+                nn.Linear(97, 128), nn.ReLU(), nn.Dropout(0.3),
+                nn.Linear(128, 64), nn.ReLU(), nn.Dropout(0.3),
+                nn.Linear(64, 32), nn.ReLU(),
+                nn.Linear(32, 1)
+            )
+        def forward(self, x):
+            return self.network(x)
+
+    _shower_model = _ShowerNet()
+    _shower_model.load_state_dict(torch.load(_model_path, map_location='cpu'))
+    _shower_model.eval()
+
+    # Load scaler
+    if os.path.exists(_scaler_path):
+        _scaler = joblib.load(_scaler_path)
+    else:
+        warnings.warn("WARNING: scaler.pkl NOT FOUND. NN filtering will produce meaningless output!")
+
+
+
+def build_fwshowers(ev: Event, threshold: Optional[List[int]] = None, debug: Optional[bool] = False, 
+                   debug_step: Optional[int] = 4, use_NN_filter: Optional[bool] = True, debug_path: Optional[str] = "./results") -> None:
     """
     Emulate the behavior of shower reconstruction in FPGA firmware.
     
@@ -28,67 +66,87 @@ def build_fwshowers(ev: Event, threshold: Optional[int] = None, debug: Optional[
     :rtype: None
     """
     if not hasattr(ev, "digis"):
-        warnings.warn("'digis' is not included in _PARTICLE_TYPES. Please check the config YAML file. Skipping firmware shower building.")
-        return
+            warnings.warn("'digis' is not included in _PARTICLE_TYPES. Please check the config YAML file. Skipping firmware shower building.")
+            return
     #prepare the event to store the showers
-    setattr(ev, "fwshowers", [])
-    if not threshold:
-        threshold = 6
+    Has_shower_builder=np.zeros((5,15,5,3), dtype=bool)
 
-    digis_df = DataFrame([digi.__dict__ for digi in ev.digis])
+    setattr(ev, "fwshowers", [])    
+    Active_regions=[]  
+    MaxBX=max(ev.digis, key=lambda d: d.BX, default=None).BX  
+    Hit_vector_SL = np.zeros((5, 15, 5, 3, int(MaxBX+1)), dtype=int)
+    Hits_vector_SL = np.zeros((5, 15, 5, 3, 128), dtype=int)
+    Lastfired_BX = np.zeros((5, 15, 5, 3, 128), dtype=int)
+    hit_BX= np.zeros((5, 15, 5, 3, int(MaxBX+1)), dtype=int)
+    Hits_per_Bx= np.zeros((5, 15, 5, 3, int(MaxBX+1)), dtype=int)
+    Hits_profile = np.zeros((5, 15, 5, 3, 97, int(MaxBX+1)), dtype=int)
+    shower_profile= np.zeros(96, dtype=int)  # to store the shower profile for debug plots
+    if ev.digis!=[]:
+        for digi in ev.digis:
+            wh, sc, st, sl = digi.wh, digi.sc, digi.st, digi.sl   
+            #Hotwire_logic;
+            if Lastfired_BX[wh+2, sc, st, sl-1, digi.w]!=digi.BX and Lastfired_BX[wh+2, sc, st, sl-1, digi.w]!=digi.BX+1 :  # SL index adjusted to 0,1,2 
+                Lastfired_BX[wh+2, sc, st, sl-1, digi.w]=digi.BX
+                Active_regions.append((wh, sc, st, sl))
+                Hits_profile[wh+2, sc, st, sl-1, digi.w, int(digi.BX)] += 1  # SL index adjusted to 0,1,2
+                Hits_per_Bx[wh+2, sc, st, sl-1, int(digi.BX)] += 1  # SL index adjusted to 0,1,2
+                Hit_vector_SL[wh+2, sc, st, sl-1, int(digi.BX):int(digi.BX)+16] += 1  # SL index adjusted to 0,1,2
+                hit_BX[wh+2, sc, st, sl-1, int(digi.BX)] = int(digi.BX) # array to store the value of the BX
+                Hits_vector_SL[wh+2, sc, st, sl-1, digi.w] = 1  # SL index adjusted to 0,1,2
+    ish=0        
 
-    if digis_df.empty:  # if there are no digis, pass
-        return
-    
-    ev_BXs = digis_df.BX.unique()  # Get all unique BXs in the event
-    shower_info = {}
+    for active_region in set(Active_regions):
+        #process_layer
+        wh, sc, st, sl = active_region
+        if  Hit_vector_SL[wh+2, sc, st, sl-1, :].max() >= threshold[st-1]:  # SL index adjusted to 0,1,2
+            
+            Has_shower_builder[wh+2, sc, st, sl-1] = True
+            #maxhits
+            nhits=Hit_vector_SL[wh+2, sc, st, sl-1, :].max()
+            peak= np.where(Hit_vector_SL[wh+2, sc, st, sl-1, :] == nhits)[0][0] # Get the first index of the peak
+            BXs_in_shower=hit_BX[wh+2, sc, st, sl-1, peak-16:peak+1]
+            BX=min(BXs_in_shower[BXs_in_shower>0]) if BXs_in_shower[BXs_in_shower>0].size>0 else None
+            Hits_inShower=Hits_per_Bx[wh+2, sc, st, sl-1, peak-16:peak+1]
+            average_BX_hits=sum((BXs_in_shower*Hits_inShower))/sum(Hits_inShower) if sum(Hits_inShower)>0 else None
+            Mehtod1_BX=int(np.mean(BXs_in_shower[BXs_in_shower > 0][:4])) if (BXs_in_shower[BXs_in_shower > 0].size > 0) else None
+            Method2_BX = int(np.mean(np.concatenate([BXs_in_shower[BXs_in_shower > 0][:2], BXs_in_shower[BXs_in_shower > 0][-2:]]))) if (BXs_in_shower[BXs_in_shower > 0].size > 0) else None
+            # Find non-zero indices in Hits_vector_SL for this region
+            wire_indices = np.nonzero(Hits_vector_SL[wh+2, sc, st, sl-1])[0]
+            min_wire = int(wire_indices.min()) if wire_indices.size > 0 else None
+            max_wire = int(wire_indices.max()) if wire_indices.size > 0 else None  
+            digis=[]
+            for hits in ev.digis:
+                if hits.wh==wh and hits.sc==sc and hits.st==st and hits.sl==sl and hits.BX>=peak-16 and hits.BX<=peak:
+                    digis.append(hits)
+            _shower = Particle(index=ish, wh=wh, sc=sc, st=st, nDigis=nhits, BX=BX, name="Shower")
+            _shower.average_BX_hits = average_BX_hits
+            _shower.min_wire = min_wire
+            _shower.digis = digis
+            _shower.max_wire = max_wire       
+            _shower.shower_profile = Hits_profile[wh+2, sc, st, sl-1, :, peak-16:peak+1].sum(axis=1)  # SL index adjusted to 0,1,2
+            _shower.sl = sl
+            _shower.BXM1=Mehtod1_BX
+            _shower.BXM2=Method2_BX
+            _shower.matched_tps = []  # Initialize matched_tps
+            if use_NN_filter and _shower_model is not None and _scaler is not None:
+                # reshape to (1, 97) and scale
+                profile_np = _shower.shower_profile.astype(np.float32).reshape(1, -1)
+                profile_scaled = _scaler.transform(profile_np)
+                # convert to torch tensor
+                x = torch.tensor(profile_scaled, dtype=torch.float32)
+                # model prediction
+                with torch.no_grad():
+                    logits = _shower_model(x)
+                    prob = torch.sigmoid(logits).item()
+                _shower.prediction_value = prob
+                _shower.isnot_dropped = prob > 0.5
 
-    digis_groups = digis_df.groupby(["wh", "sc", "st", "sl"])
-
-    if debug and ev.index % debug_step == 0:
-        ncols, nrows = 4, int(ceil(digis_groups.ngroups / 4))
-        fig, axs = plt.subplots(nrows, ncols, figsize=(10 * ncols, 8 * nrows))
-        axs = axs.flat
-
-    for idx, ((wh, sc, st, sl), digis_group) in enumerate(digis_groups):  # apply by SL
-        if sl == 2: # SL 2 is not used in the firmware
-            continue
-        spread = digis_group.drop_duplicates(["l", "w"])["w"].std()**2 > 1
-        if not spread:
-            continue
-        showered, nHits, sBX, hits_history = _process_superlayer(ev_BXs, digis_group, threshold)
-        if showered:
-            if debug and ev.index % debug_step == 0:
-                color_msg(
-                    f"Shower detected in (wh, sc, st, sl): ({wh}, {sc}, {st}, {sl}), with {nHits} hits in bx {sBX}",
-                    "purple",
-                    indentLevel=2,
-                )
-
-            key = (wh, sc, st, sl)  # since is by SL, it could generate multiple showers per chamber
-            if key not in shower_info:
-                shower_info[key] = (nHits, sBX)
-
-        if debug and ev.index % debug_step == 0:
-            axs[idx].plot(hits_history[:, 0], hits_history[:, 1])
-            axs[idx].hlines(threshold, min(ev_BXs), max(ev_BXs), "r", "--")
-            if showered:
-                axs[idx].text(x=25, y=5, s="FwSHOWER", color="darkgreen", alpha=0.8)
-            axs[idx].set_title(f"wh = {wh}, sc = {sc}, st = {st}, sl = {sl}")
-            axs[idx].set_xlabel("BX")
-            axs[idx].set_ylabel("Hits")
-
-    if debug and ev.index % debug_step == 0:
-        plt.tight_layout()
-        create_outfolder(f"{debug_path}/fwshower_plots/")
-        fig.savefig(f"{debug_path}/fwshower_plots/hits_evolution_ev{ev.index}.pdf")
-        plt.close(fig)
-        gc.collect()
-
-    for ish, ((wh, sc, st, sl), (nHits, bx)) in enumerate(shower_info.items()):
-        _shower = Particle(index=ish, wh=wh, sc=sc, st=st, nDigis=nHits, BX=bx, name="Shower")
-        _shower.sl = sl
-        ev.fwshowers.append(_shower)
+            else:
+                # fallback: no NN, never drop shower
+                _shower.prediction_value = None
+                _shower.isnot_dropped = True                            
+        
+            ev.fwshowers.append(_shower)
 
 def _process_superlayer(ev_BXs: List[int], digis_df: DataFrame, threshold: int) -> Tuple[bool, int, int, ndarray]:
     """
@@ -142,7 +200,7 @@ def _process_superlayer(ev_BXs: List[int], digis_df: DataFrame, threshold: int) 
     return showered, nHits, sBX, num_hits_history
 
 
-def build_real_showers(ev: Event, threshold: Optional[int] = None, debug: Optional[bool] = False) -> None:
+def build_real_showers(ev: Event, threshold: Optional[int] = None,Filtersimhits:Optional[bool] = True, debug: Optional[bool] = False) -> None:
     """
     Build real showers based on simhit information.
     
@@ -150,6 +208,8 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, debug: Option
     :type ev: Event
     :param threshold: The threshold for shower building
     :type threshold: Optional[int]
+    :param Filtersimhits: Whether to filter simhits based on corresponding digis
+    :type Filtersimhits: Optional[bool]
     :param debug: Whether to enable debugging outputs
     :type debug: bool
     :return: None, modifies the event by adding realshowers attribute
@@ -168,11 +228,22 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, debug: Option
     indexs = simhits_locs.union(digis_locs)
 
     for wh, sc, st, sl in indexs:
-        if sl == 2:  # SL 2 is not used
-            continue
-
         simhits_sdf = DataFrame([simhit.__dict__ for simhit in ev.filter_particles("simhits", wh=wh, sc=sc, st=st, sl=sl)])
         digis_sdf = DataFrame([digi.__dict__ for digi in ev.filter_particles("digis", wh=wh, sc=sc, st=st, sl=sl)])
+        
+        # Filter simhits to only include those that have a corresponding digi at the same (l, w) location
+        if Filtersimhits:
+            if not simhits_sdf.empty and not digis_sdf.empty:
+                # Create sets of (l, w) coordinates for efficient lookup
+                digi_coords = set(zip(digis_sdf['l'], digis_sdf['w']))
+                simhits_sdf = simhits_sdf[simhits_sdf.apply(lambda row: (row['l'], row['w']) in digi_coords, axis=1)]
+            elif digis_sdf.empty:
+                # If there are no digis, clear simhits_sdf as there are no matching coordinates
+                simhits_sdf = DataFrame()
+        
+        
+
+
 
         _build_shower = False
 
@@ -224,6 +295,10 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, debug: Option
             _shower = Particle(index=_index, wh=wh, sc=sc, st=st, name="Shower") 
             _shower.shower_type = shower_type
             _shower.sl = sl
+            _shower.nsimhits = len(simhits_sdf.drop_duplicates(["l", "w"])) if not simhits_sdf.empty else 0
+            _shower.ndigis = len(digis_sdf.drop_duplicates(["l", "w"])) if not digis_sdf.empty else 0
+            _shower.min_wire = int(min(simhits_sdf["w"].min(), digis_sdf["w"].min())) if not simhits_sdf.empty and not digis_sdf.empty else (int(simhits_sdf["w"].min()) if not simhits_sdf.empty else int(digis_sdf["w"].min()))
+            _shower.max_wire = int(max(simhits_sdf["w"].max(), digis_sdf["w"].max())) if not simhits_sdf.empty and not digis_sdf.empty else (int(simhits_sdf["w"].max()) if not simhits_sdf.empty else int(digis_sdf["w"].max()))
             ev.realshowers.append(_shower)
             if debug:
                 color_msg(

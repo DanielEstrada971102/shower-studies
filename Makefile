@@ -61,6 +61,9 @@ reinstall-mpldts-dev-if-needed:
 comment-mpldts-in-pyproject:
 	sed -i '/mplDTs/s/^/# /' $(DTPR_PATH)/pyproject.toml
 
+install-other-deps:
+	pip install -r requirements.txt
+
 # ------------------------------
 # Targets
 # ------------------------------
@@ -81,6 +84,7 @@ help:
 install: check-root
 	pip install $(_GIT_DTPR)
 	@$(MAKE) reinstall-mpldts-if-needed
+	$(MAKE) install-other-deps
 	$(MAKE) set-path
 
 # Install using local paths (editable mode)
@@ -88,6 +92,7 @@ install-local: check-root check-local-repos
 	@$(MAKE) comment-mpldts-in-pyproject
 	pip install -e $(MPLDTS_PATH)
 	pip install -e $(DTPR_PATH)
+	$(MAKE) install-other-deps
 	$(MAKE) set-path
 
 # Development mode: create/use a venv and install GitHub deps (non-editable)
@@ -118,6 +123,7 @@ dev-local: check-root check-local-repos
 	@$(MAKE) comment-mpldts-in-pyproject
 	$(ENV_DIR)/bin/pip install -e $(MPLDTS_PATH)
 	$(ENV_DIR)/bin/pip install -e $(DTPR_PATH)
+	@$(MAKE) install-other-deps
 	@echo "✅ Dev environment ready in $(ENV_DIR)"
 	@echo "👉 Activate it with: source $(ENV_DIR)/bin/activate"
 	$(MAKE) set-path
