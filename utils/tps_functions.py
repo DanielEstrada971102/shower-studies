@@ -4,7 +4,7 @@ import numpy as np
 
 Station = STATION_CACHE.get
 
-def compute_x0(tp: Particle, ref_frame="SL13Center") -> float:
+def compute_x0(tp: Particle, ref_frame="SL13Center") -> float: # DON'T USE AT THE MOMENT, A CORRECTION IS NEEDED
     """
     Compute local position of the AM Trigger Primitive referenced to `ref_frame`. 
     Base computation is done in the Sector Reference frame, where the x position can be computed as:

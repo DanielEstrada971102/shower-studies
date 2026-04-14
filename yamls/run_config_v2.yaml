@@ -8,7 +8,7 @@ ntuple_selectors: !include selectors/ntuple_selectors_v0.yaml
 particle_types:
   digis: !include particles/digis.yaml
   segments: !include particles/segments.yaml
-  tps: !include particles/tps_v2.yaml
+  tps: !include particles/tps_v2_fixed.yaml
   genmuons: !include particles/genmuons.yaml
   fwshowers: !include particles/cmssw_showers.yaml
   simhits: !include particles/simhits.yaml
