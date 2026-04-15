@@ -15,4 +15,5 @@ test/*.svg
 *.Xil
 *.txt
 *logs*
+*results*
 !requirements.txt

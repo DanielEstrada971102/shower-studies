@@ -4,16 +4,16 @@
 # USER CONFIG - EDIT ONLY THIS SECTION
 # =========================
 INPUTS=(
-    "/nfs/fanae/user/jprado/Prado/Firmware_Emulator_test/Root_files/*_[0-2].root"
+    "results-campaign/roots-merged/dump_events_G.root"
 )
 
 CHUNK_SIZE=1 # number of files per chunk
-COMMAND="dtpr dump-events" # command to run on each chunk, should accept file list as arguments with -i 
-ARGS="-o roots/events_dumped___TASK_ID__.root --maxevents=10 -cf yamls/run_config_v1.yaml" # additional args for the command, __TASK_ID__ will be replaced by the chunk id (starting from 0)
+COMMAND="dtpr fill-histos" # command to run on each chunk, should accept file list as arguments with -i  __TASK_ID__
+ARGS="-o results-campaign/ --tag _G -cf results-campaign/roots-merged/G.yaml" # additional args for the command, __TASK_ID__ will be replaced by the chunk id (starting from 0)
 CONDA_ENV="showers-destrada" # name of conda environment to activate before running the command, set to "none" if env not needed
-LOG_DIR="logs" # directory to store logs, each chunk will have job_<id>.out and job_<id>.err files
+LOG_DIR="results-campaign/roots-merged/logs" # directory to store logs, each chunk will have job_<id>.out and job_<id>.err files
 CPUS=1 # number of CPUs to request for each job (only applies if USE_SLURM=true)
-
+PARTITION="batch" # partition to submit jobs to (only applies if USE_SLURM=true)
 # =========================
 # Args parsing
 # =========================
@@ -189,7 +189,7 @@ for id in "${CHUNK_IDS[@]}"; do
     # replace placeholder with current chunk id
     ARGS_FILLED="${ARGS//__TASK_ID__/$id}"
 
-    BASE_CMD=(bash run_cmd_on_files.sh \"$COMMAND\" \"$ARGS_FILLED\" \"$CONDA_ENV\" ${CHUNK_FILES[@]})
+    BASE_CMD=(bash new_run_cmd_on_files.sh \"$COMMAND\" \"$ARGS_FILLED\" \"$CONDA_ENV\" ${CHUNK_FILES[@]})
 
     # create execution script for this chunk
     EXEC_FILE="$RUN_DIR/job_$id.sh"
@@ -213,7 +213,7 @@ for id in "${CHUNK_IDS[@]}"; do
     else 
         # -------- SLURM MODE --------
         if [ "$USE_SLURM" = true ]; then
-            SBATCH_CMD=(sbatch --job-name=chunk_$id --output=$RUN_DIR/job_$id.out --error=$RUN_DIR/job_$id.err --cpus-per-task=$CPUS $EXEC_FILE)
+            SBATCH_CMD=(sbatch -p $PARTITION --job-name=chunk_$id --output=$RUN_DIR/job_$id.out --error=$RUN_DIR/job_$id.err --cpus-per-task=$CPUS $EXEC_FILE)
 
             if [ "$DRY_RUN" = true ]; then
                 echo ""
