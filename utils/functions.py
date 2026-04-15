@@ -64,3 +64,18 @@ def correct_g4digi_time(g4digi: Any) -> float:
     time_offset = 400
     delay = np.random.normal(loc=mean, scale=stddev)
     return g4digi._time + abs(delay) + time_offset # why abs ?
+
+def duplicate_particle_collection(event: Any, pcollection_name: str, new_pcollection_name: str) -> None:
+    """
+    Duplicates a particle collection in the event.
+
+    :param event: The event object containing the particle collection.
+    :type event: Any
+    :param pcollection_name: The name of the particle collection to duplicate.
+    :type pcollection_name: str
+    :param new_pcollection_name: The name of the new duplicated particle collection.
+    :type new_pcollection_name: str
+    """
+    if not hasattr(event, pcollection_name):
+        raise AttributeError(f"The event does not have a particle collection named '{pcollection_name}'")
+    setattr(event, new_pcollection_name, getattr(event, pcollection_name))
