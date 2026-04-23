@@ -4,11 +4,15 @@ This repository contains studies related to the development of the shower detect
 
 The studies are based on the shower primitives generated using the CMSSW emulator ([DTTrigPhase2ShowerProd.cc](https://github.com/cms-sw/cmssw/blob/master/L1Trigger/DTTriggerPhase2/plugins/DTTrigPhase2ShowerProd.cc)). Using this plugin, DTNTuples are created with the code available in this repository: [DTNtuples](https://github.com/INTREPID-hep/DTNtuples/tree/shower_ntuples).
 
-There a few set of DTNTuples already produced accesible in `/lustrefs`:
+There are several DTNTuple sets already produced and available under `/lustrefs/L1T/dtntuples`:
 
-- **6 TeV Zprime candidate to have a source of showers**: `/ZprimeToMuMu_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRWinter20DIGI-PU200_110X_mcRun4_realistic_v3-v2/GEN-SIM-DIGI-RAW`, located in `/lustrefs/hdd_pool_dir/L1T/Filter/ThresholdScan_Zprime_DY/last/ZprimeToMuMu_M-6000_PU200/` (Note: this sample appears as INVALID in DAS).
+- **ZprimeToMuMu_M-6000_PU200** (shower-rich source):
+  - v1 DAS source: `/ZprimeToMuMu_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRWinter20DIGI-PU200_110X_mcRun4_realistic_v3-v2/GEN-SIM-DIGI-RAW` (currently appears as INVALID in DAS).
+  - v1p2 DAS source: `/ZprimeToMuMu_M-6000_TuneCP5_14TeV-pythia8/Phase2Spring24DIGIRECOMiniAOD-PU200_Trk1GeV_140X_mcRun4_realistic_v4-v1/GEN-SIM-DIGI-RAW-MINIAOD`.
+- **MinBias_200PU** (rate studies): `/MinBias_TuneCP5_14TeV-pythia8/Phase2Spring24DIGIRECOMiniAOD-PU200ALCA_140X_mcRun4_realistic_v4-v2/GEN-SIM-DIGI-RAW-MINIAOD`.
+- **DYToLL_M-50_PU200** (background/reference): `/DYToLL_M-50_TuneCP5_14TeV-pythia8/Phase2Spring24DIGIRECOMiniAOD-PU200_Trk1GeV_140X_mcRun4_realistic_v4-v1/GEN-SIM-DIGI-RAW-MINIAOD`.
 
-- **Minimum Bias sample to rate studies**: `/MinBias_TuneCP5_14TeV-pythia8/Phase2Spring24DIGIRECOMiniAOD-PU200ALCA_140X_mcRun4_realistic_v4-v2/GEN-SIM-DIGI-RAW-MINIAOD`, located in `/lustrefs/hdd_pool_dir/L1T/Filter/ThresholdScan_Zprime_DY/last/MinBias_PU200/`.
+For the current folder structure and version mapping, see `/lustrefs/L1T/dtntuples/README.md`.
 
 The subdirectories in this repo contains specific studies on the mentioned data:
 
