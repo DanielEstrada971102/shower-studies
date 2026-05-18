@@ -24,5 +24,3 @@ attributes:
   wires_profile: 
     branch: 'ph2Shower_wires_profile'
   matched_tps: []
-  
-filter: 'p.sl !=2' # only consider showers in SL1 and SL3 at the moment

@@ -30,5 +30,3 @@ attributes:
   digis_layer:
     branch: 'ph2Shower_wires_layer_constituents'
   matched_tps: []
-  
-filter: 'p.sl !=2' # only consider showers in SL1 and SL3 at the moment

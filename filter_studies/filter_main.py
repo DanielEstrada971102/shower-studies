@@ -223,6 +223,7 @@ def barrel_filter_analyzer(ev, only4true_showers=False, shower_seg_version=2, de
     """Divide event into sectors and analyze showers/TPs for each sector."""
     # simple filter in case only true showers are needed, or to avoid analyzing events without showers
     _showers = ev.filter_particles(showers2use_name, is_true_shower=True) if only4true_showers else getattr(ev, showers2use_name)
+    _showers = [shower for shower in _showers if shower.sl != 2]
     if not _showers:
         if debug:
             color_msg("No showers found in the event", color="red", indentLevel=1)

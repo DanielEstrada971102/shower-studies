@@ -69,3 +69,19 @@ def compute_offseg_psi(segment: Particle) -> float:
     x_sl3 = segment.pos_locx_sl3
     psi = arctan2(x_sl3 - x_sl1, -1 * (y_sl3 - y_sl1))
     return degrees(psi)
+
+def drop_duplicate_segments(event):
+    """
+    Drop duplicate segments. A segment is considered a duplicate if it has the same 
+    (wh, sc, st, phi, eta) as another segment in the same event.
+    :param event: The event containing segments.
+    """
+    seen = set()
+    unique_segments = []
+    for seg in event.segments:
+        key = (seg.wh, seg.sc, seg.st, round(seg.phi, 2), round(seg.eta, 2))
+        if key not in seen:
+            seen.add(key)
+            unique_segments.append(seg)
+    event.segments = unique_segments
+

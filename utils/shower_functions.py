@@ -295,12 +295,12 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
             are_electron_hits = len(simhits_sdf.loc[simhits_sdf["particle_type"].abs() == 11]) > 0
             # hits are spread out in the chamber
             spread = max(simhits_sdf["w"]) - min(simhits_sdf["w"]) >= 2 #simhits_sdf["w"].std()**2 > 1
-            # # are duplicated matched segments
-            # matched_segments = []#[seg for gm in ev.genmuons for seg in getattr(gm, 'matched_segments', [])]
-            # if matched_segments:
-            #     are_duplicated_segments = len(matched_segments) > len(get_unique_locs(matched_segments, loc_ids=["wh", "sc", "st"]))
-            # else:
-            #     are_duplicated_segments = False # -- for G4 DTNtuples there are no segments
+            # are duplicated matched segments
+            matched_segments = [seg for gm in ev.genmuons for seg in getattr(gm, 'matched_segments', [])]
+            if matched_segments:
+                are_duplicated_segments = len(matched_segments) > len(get_unique_locs(matched_segments, loc_ids=["wh", "sc", "st"]))
+            else:
+                are_duplicated_segments = False # -- for G4 DTNtuples there are no segments
 
             if pass_thr:
                 if debug: color_msg(f'spread: {spread} --> {simhits_sdf["w"].std()**2}', "purple", indentLevel=2)
@@ -308,8 +308,8 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
                     shower_type = 1
                 elif are_electron_hits and spread:
                     shower_type = 2
-                # elif are_duplicated_segments:
-                #     shower_type = 3
+                elif are_duplicated_segments:
+                    shower_type = 3
                 else:
                     continue
                 _build_shower = True
