@@ -1,4 +1,4 @@
-from dtpr.base import Particle
+from dtpr.base import Event, Particle
 from dtpr.utils.functions import append_to_matched_list
 from numpy import cos, arccos, arctan2, pi, degrees
 from typing import Optional
@@ -70,18 +70,19 @@ def compute_offseg_psi(segment: Particle) -> float:
     psi = arctan2(x_sl3 - x_sl1, -1 * (y_sl3 - y_sl1))
     return degrees(psi)
 
-def drop_duplicate_segments(event):
+def drop_duplicate_segments(event: Event, seg2use: Optional[str] = "segments") -> None:
     """
     Drop duplicate segments. A segment is considered a duplicate if it has the same 
     (wh, sc, st, phi, eta) as another segment in the same event.
     :param event: The event containing segments.
+    :param seg2use: The attribute name for the segments list in the event.
     """
     seen = set()
     unique_segments = []
-    for seg in event.segments:
+    for seg in getattr(event, seg2use):
         key = (seg.wh, seg.sc, seg.st, round(seg.phi, 2), round(seg.eta, 2))
         if key not in seen:
             seen.add(key)
             unique_segments.append(seg)
-    event.segments = unique_segments
+    setattr(event, seg2use, unique_segments)
 

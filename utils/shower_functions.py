@@ -3,15 +3,17 @@ import gc
 import matplotlib.pyplot as plt
 from numpy import ceil, array, ndarray
 from pandas import DataFrame
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Union
 from collections import deque
 from dtpr.base import Event, Particle
-from dtpr.utils.functions import color_msg, create_outfolder, get_unique_locs
+from dtpr.utils.functions import color_msg, get_unique_locs
 import numpy as np
 import torch
 import torch.nn as nn
 import os
 import joblib
+from sklearn.cluster import DBSCAN
+
 
 def build_fwshowers(ev: Event, threshold: Optional[List[int]] = None, name: Optional[str] = "fwshowers",
                     debug: Optional[bool] = False, debug_step: Optional[int] = 4, debug_path: Optional[str] = "./results") -> None:
@@ -237,7 +239,15 @@ def _process_superlayer(ev_BXs: List[int], digis_df: DataFrame, threshold: int) 
     return showered, nHits, sBX, num_hits_history
 
 
-def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 = False, Filtersimhits:Optional[bool] = True, resultColName: Optional[str] = "realshowers", debug: Optional[bool] = False) -> None:
+def build_real_showers(
+        ev: Event, 
+        threshold: Union[Optional[int], Optional[list]]= 8,
+        include_sl2 = False, Filtersimhits:Optional[bool] = True,
+        resultColName: Optional[str] = "realshowers",\
+        simhits2use: Optional[str] = "simhits",
+        digis2use: Optional[str] = "digis",
+        types2analyze: Optional[List[int]] = [1, 2, 3, 4],
+        debug: Optional[bool] = False) -> None:
     """
     Build real showers based on simhit information.
     
@@ -255,23 +265,28 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
     :rtype: None
     """
 
-    if not hasattr(ev, "simhits"):
-        warnings.warn("'simhits' is not included in _PARTICLE_TYPES. Please check the config YAML file. Skipping real shower building.")
+    if not hasattr(ev, simhits2use):
+        warnings.warn(f"'{simhits2use}' is not included in _PARTICLE_TYPES. Please check the config YAML file. Skipping real shower building.")
         return
 
     setattr(ev, resultColName, [])  # initialize the realshowers list in the event
-    thr = 8 if threshold is None else threshold
+    
+    if isinstance(threshold, list):
+        if len(threshold) != 4:
+            raise ValueError("Threshold list must have 4 elements corresponding to stations 1-4.")
+    else:
+        threshold = [threshold] * 4  # if a single int is provided, use it for all stations
 
-    simhits_locs = get_unique_locs(particles=ev.simhits, loc_ids=["wh", "sc", "st", "sl"])
-    digis_locs = get_unique_locs(particles=ev.digis, loc_ids=["wh", "sc", "st", "sl"])
+    simhits_locs = get_unique_locs(particles=getattr(ev, simhits2use), loc_ids=["wh", "sc", "st", "sl"])
+    digis_locs = get_unique_locs(particles=getattr(ev, digis2use), loc_ids=["wh", "sc", "st", "sl"])
     indexs = simhits_locs.union(digis_locs)
 
     for wh, sc, st, sl in indexs:
         if sl == 2 and not include_sl2:
             continue
-        simhits_sdf = DataFrame([simhit.__dict__ for simhit in ev.filter_particles("simhits", wh=wh, sc=sc, st=st, sl=sl)])
-        digis_sdf = DataFrame([digi.__dict__ for digi in ev.filter_particles("digis", wh=wh, sc=sc, st=st, sl=sl)])
-        
+        simhits_sdf = DataFrame([simhit.__dict__ for simhit in getattr(ev, simhits2use) if simhit.wh == wh and simhit.sc == sc and simhit.st == st and simhit.sl == sl])
+        digis_sdf = DataFrame([digi.__dict__ for digi in getattr(ev, digis2use) if digi.wh == wh and digi.sc == sc and digi.st == st and digi.sl == sl])
+
         # Filter simhits to only include those that have a corresponding digi at the same (l, w) location
         if Filtersimhits:
             if not simhits_sdf.empty and not digis_sdf.empty:
@@ -282,6 +297,7 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
                 # If there are no digis, clear simhits_sdf as there are no matching coordinates
                 simhits_sdf = DataFrame()
 
+        thr = threshold[st-1] 
         _build_shower = False
 
         if not simhits_sdf.empty:
@@ -304,11 +320,11 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
 
             if pass_thr:
                 if debug: color_msg(f'spread: {spread} --> {simhits_sdf["w"].std()**2}', "purple", indentLevel=2)
-                if are_muons_hits and are_electron_hits and spread:
+                if 1 in types2analyze and are_muons_hits and are_electron_hits and spread:
                     shower_type = 1
-                elif are_electron_hits and spread:
+                elif 2 in types2analyze and are_electron_hits and spread:
                     shower_type = 2
-                elif are_duplicated_segments:
+                elif 3 in types2analyze and are_duplicated_segments:
                     shower_type = 3
                 else:
                     continue
@@ -321,7 +337,7 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
             # hits are spread out in the chamber
             d = max(digis_sdf["w"]) - min(digis_sdf["w"])
             spread = d > 4 and d < 10
-            if len(digis_sdf) >= thr and spread:
+            if 4 in types2analyze and len(digis_sdf) >= thr and spread:
                 shower_type = 4
                 _build_shower = True
         
@@ -342,6 +358,127 @@ def build_real_showers(ev: Event, threshold: Optional[int] = None, include_sl2 =
                     "green",
                     indentLevel=2,
                 )
+
+
+def build_real_showers_by_clustering(
+        ev: Event,
+        threshold: Union[Optional[int], Optional[list[int]]] = 8,
+        include_sl2: bool = False,
+        resultColName: Union[Optional[str], str] = "realshowers",
+        eps: Union[Optional[float], Optional[list[float]]] = 1.5, 
+        min_samples: Union[Optional[int], Optional[list[int]]] = 4,
+        digis2use: Union[Optional[str], str] = "digis",
+        debug: Optional[bool] = False
+        ) -> None:
+    """
+    Build real showers based ONLY on digi information using DBSCAN clustering.
+    Focuses purely on detecting any dense cluster with hits >= threshold.
+    """
+
+    if not hasattr(ev, digis2use):
+        warnings.warn(f"'{digis2use}' is not included in the event. Skipping real shower building.")
+        return
+
+    setattr(ev, resultColName, [])
+
+    if isinstance(threshold, list):
+        if len(threshold) != 4:
+            raise ValueError("Threshold list must have 4 elements corresponding to stations 1-4.")
+    else:
+        threshold = [threshold] * 4
+
+    if isinstance(eps, list):
+        if len(eps) != 4:
+            raise ValueError("Eps list must have 4 elements corresponding to stations 1-4.")
+    else:
+        eps = [eps] * 4
+
+    if isinstance(min_samples, list):
+        if len(min_samples) != 4:
+            raise ValueError("min_samples list must have 4 elements corresponding to stations 1-4.")
+    else: 
+        min_samples = [min_samples] * 4
+
+    # Obtenemos las localizaciones únicas basadas solo en digis
+    digis_locs = get_unique_locs(particles=getattr(ev, digis2use, []), loc_ids=["wh", "sc", "st", "sl"])
+
+    for wh, sc, st, sl in digis_locs:
+        if sl == 2 and not include_sl2:
+            continue
+
+        # Filtrar digis en esta cámara/supercapa
+        digis_filtrados = ev.filter_particles(digis2use, wh=wh, sc=sc, st=st, sl=sl)
+        if not digis_filtrados:
+            continue
+
+        digis_sdf = DataFrame([digi.__dict__ for digi in digis_filtrados])
+        digis_sdf = digis_sdf[["l", "w"]].drop_duplicates()
+
+        # Si el número total de digis en la capa no alcanza  el threshold, no perdemos tiempo ejecutando DBSCAN.
+        if len(digis_sdf) < threshold[st-1]:
+            continue
+
+        # --- FASE DBSCAN ---
+        X = digis_sdf[["l", "w"]].values
+
+        # Scale integer indices to physical dimensions (in cm)
+        # X[:, 0] is Layer (1.3 cm) and X[:, 1] is Wire (4.2 cm)
+        X_physical = X * np.array([1.3, 4.2])
+        
+        # 2.Use a physical eps. 
+        # 5.0 cm allows for adjacent and diagonal cell connections
+        physical_eps = 4.2 * eps[st - 1]  # Scale by eps factor for tuning sensitivity (e.g., 1.5 means 1.5 wires distance in physical space) 
+        
+        # Run DBSCAN on the physical coordinates
+        db = DBSCAN(eps=physical_eps, min_samples=min_samples[st - 1]).fit(X_physical)
+        labels = db.labels_
+
+        unique_labels = set(labels) - {-1}
+
+        _build_shower = False
+        max_cluster_size = 0
+        final_min_w, final_max_w = 0, 0
+
+        # Iteramos sobre los clusters encontrados buscando superar el Threshold
+        for label in unique_labels:
+            cluster_mask = (labels == label)
+            cluster_elements = X[cluster_mask]
+            cluster_size = len(cluster_elements)
+
+            # Si este cluster específico tiene >= 8 hits
+            if cluster_size >= threshold[st - 1]:
+                _build_shower = True
+                
+                # Si en una misma cámara hay varios clusters grandes, guardamos 
+                # las propiedades del más masivo.
+                if cluster_size > max_cluster_size:
+                    max_cluster_size = cluster_size
+                    cluster_wires = cluster_elements[:, 1]
+                    final_min_w, final_max_w = int(cluster_wires.min()), int(cluster_wires.max())
+
+        # --- CONSTRUCCIÓN DEL OBJETO SHOWER ---
+        if _build_shower:
+            _realshowers_coll = getattr(ev, resultColName)
+            _index = _realshowers_coll[-1].index + 1 if _realshowers_coll else 0
+            
+            _shower = Particle(index=_index, wh=wh, sc=sc, st=st, name="Shower") 
+            _shower.shower_type = 10  # ID para cluster denso (>= threshold)
+            _shower.sl = sl
+            _shower.nsimhits = 0      # Solo usamos digis
+            _shower.ndigis = int(max_cluster_size)
+            _shower.min_wire = final_min_w
+            _shower.max_wire = final_max_w
+            
+            _realshowers_coll.append(_shower)
+            
+            if debug:
+                color_msg(
+                    f'Realshower (DBSCAN) detected in (wh, sc, st, sl): ({wh}, {sc}, {st}, {sl}) '
+                    f'- size: {max_cluster_size} hits - wire span: [{final_min_w}, {final_max_w}]',
+                    "green",
+                    indentLevel=2,
+                )
+
 
 def analyze_fwshowers(ev: Event, showers2use_name: str = "fwshowers", realshowers2use_name: str = "realshowers") -> None:
     """
@@ -435,5 +572,106 @@ def drop_fwshowers(ev: Event, showers2use_name: str = "fwshowers") -> None:
         _shower.isnot_dropped = prob > 0.5
         if _shower.isnot_dropped:
             showers_to_keep.append(_shower)
+
+    setattr(ev, showers2use_name, showers_to_keep)
+
+
+def drop_showers_by_thresholds(ev: Event, thresholds: list[int], showers2use_name: str = "fwshowers") -> None:
+    """
+        NOT USE AS A PREPROCESSOR, IF ANY PARTICLE HAS REFERENCE TO THE SHOWER OBJECT, THIS FUNCTION WILL NOT DELETE THE SHOWER OBJECT IN THAT REFERENCE, BUT JUST DROP THE SHOWER FROM THE SHOWER COLLECTION.
+    Drop showers that do not meet a required threshold by station type
+    
+    :param ev: The event containing showers to filter
+    :type ev: Event
+    :param thresholds: A list of property thresholds for each station (e.g., [9, 8, 8, 7])
+    :type thresholds: list[int]
+    :return: None, modifies the event by removing showers that do not meet the thresholds
+    :rtype: None
+    """
+    if not hasattr(ev, showers2use_name):
+        raise AttributeError(f"ERROR: '{showers2use_name}' attribute not found in event. Please check the config YAML file and ensure that the shower builder is correctly configured to create '{showers2use_name}'.")
+    
+    if thresholds is None:
+        warnings.warn("No thresholds provided for drop_shower_by_thresholds. No showers will be dropped.")
+        return
+    if not isinstance(thresholds, list):
+        warnings.warn("Thresholds must be provided as a list of integers corresponding to stations 1-4. No showers will be dropped.")
+        return
+    if len(thresholds) != 4:
+        warnings.warn("Thresholds list must have 4 elements corresponding to stations 1-4.")
+        return
+
+    showers = getattr(ev, showers2use_name)
+    showers_to_keep = []
+    for shower in showers:
+        if shower.nDigis >= thresholds[shower.st - 1]:
+            showers_to_keep.append(shower)    
+    setattr(ev, showers2use_name, showers_to_keep)
+
+
+def compute_effective_nDigis(shower, keys: list[str]) -> int:
+    """
+    Compute the effective nDigis for a shower by counting unique digis based on specified keys.
+    
+    :param shower: The shower object containing digis to analyze
+    :type shower: Particle
+    :param keys: The keys to consider for determining effective nDigis (e.g., ['l', 'w'])
+    :type keys: list[str]
+    :return: The effective nDigis count
+    :rtype: int
+    """
+    if any(not hasattr(shower, key) for key in keys):
+        raise AttributeError(f"ERROR: Shower does not have the required keys {keys} to compute effective nDigis. Please check the shower object and ensure it has the necessary attributes.")
+    
+    shower_digis = DataFrame({key: getattr(shower, key) for key in keys})
+    dropped_duplicates = shower_digis.drop_duplicates()
+    return len(dropped_duplicates)
+
+def drop_showers_by_effective_nDigis(
+        ev: Event,
+        keys: list[str],
+        threshold: Union[Optional[int], Optional[list[int]]],
+        showers2use_name: str = "fwshowers",
+        ) -> None:
+    """
+    NOT USE AS A PREPROCESSOR, IF ANY PARTICLE HAS REFERENCE TO THE SHOWER OBJECT, THIS FUNCTION WILL NOT DELETE THE SHOWER OBJECT IN THAT REFERENCE, BUT JUST DROP THE SHOWER FROM THE SHOWER COLLECTION.
+    Drop showers that do not meet a required effective nDigis threshold, where effective nDigis are the digis after drop duplicates bythe keys indicated.
+
+    :param ev: The event containing showers to filter
+    :type ev: Event
+    :param keys: The keys to consider for determining effective nDigis (e.g., ['l', 'w'])
+    :type keys: list[str]
+    :param showers2use_name: The name of the shower collection to filter
+    :type showers2use_name: str
+    :param threshold: The effective nDigis threshold to apply
+    :type threshold: Optional[int]
+    :return: None, modifies the event by removing showers that do not meet the effective nDigis threshold
+    :rtype: None
+    """
+    if not hasattr(ev, showers2use_name):
+        raise AttributeError(f"ERROR: '{showers2use_name}' attribute not found in event. Please check the config YAML file and ensure that the shower builder is correctly configured to create '{showers2use_name}'.")
+    
+    if threshold is None:
+        warnings.warn("No threshold provided for drop_showers_by_effective_nDigis. No showers will be dropped.")
+        return
+    if isinstance(threshold, list):
+        if len(threshold) != 4:
+            warnings.warn("Threshold list must have 4 elements corresponding to stations 1-4. No showers will be dropped.")
+            return
+    elif isinstance(threshold, int):
+        threshold = [threshold] * 4
+    
+    showers = getattr(ev, showers2use_name)
+    if not showers:
+        return
+    if any(not hasattr(showers[-1], key) for key in keys):
+        raise AttributeError(f"ERROR: Showers have not the required keys {keys} to compute effective nDigis. Please check the shower objects and ensure they have the necessary attributes.")
+
+    showers_to_keep = []
+
+    for shower in showers:
+        effective_nDigis = compute_effective_nDigis(shower, keys)
+        if effective_nDigis >= threshold[shower.st - 1]:
+            showers_to_keep.append(shower)
 
     setattr(ev, showers2use_name, showers_to_keep)

@@ -1,6 +1,6 @@
 from dtpr.base import NTuple
 from dtpr.base.config import RUN_CONFIG
-from dtpr.utils.functions import color_msg
+from dtpr.utils.functions import color_msg, append_to_matched_list
 from pandas import DataFrame
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -10,13 +10,12 @@ def match_shower_genmuons(shower, highpt_threshold=100):
     """
     Matches the shower with genmuons and returns the matched genmuons.
     """
-    matched_genmuons = [gm for tp in shower.matched_tps for gm in tp.matched_genmuons]
-    shower.matched_genmuons = matched_genmuons
+
+    matched_genmuons = set([gm for tp in getattr(shower, 'matched_tps', []) for gm in getattr(tp, 'matched_genmuons', [])])
+
     for gm in matched_genmuons:
-        if hasattr(gm, 'matched_showers') and shower not in gm.matched_showers:
-            gm.matched_showers.append(shower)
-        else:
-            gm.matched_showers = [shower]
+        append_to_matched_list(shower, 'matched_genmuons', gm)
+        append_to_matched_list(gm, 'matched_showers', shower)
 
     shower.is_highpt_shower = True if any(gm.pt > highpt_threshold for gm in matched_genmuons) else False
     shower.comes_from_showered_genmuon = any(gm.showered for gm in matched_genmuons)

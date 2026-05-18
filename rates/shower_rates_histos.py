@@ -13,18 +13,18 @@ import ROOT as r
 
 histos= {}
 
-def get_showers_rate(reader, station, goodbx=True):
+def get_showers_rate(reader, station, goodbx=True, bx_offset=20, bx_window=1):
     return [
         shower
         for shower in reader.filter_particles("fwshowers", st=station)
-        if (shower.BX == 20 if goodbx else 1)
+        if (abs(shower.BX - bx_offset) <= bx_window if goodbx else 1)
     ]
 
 # ------------------------------ Shower rates -------------------------------
 
 for st in stations:
     histos.update({
-        f"fwshower_rate_goodBX_MB{st}": { # ----- good BX -----
+        f"fwshower_rate_goodBX+-1_MB{st}": { # ----- good BX -----
             "type": "distribution",
             "histo": r.TH1D(f"Rate_goodBX_MB{st}_FwShower", r';Wheel; Events', 5, -2.5, 2.5),
             "func": lambda reader, st=st: [

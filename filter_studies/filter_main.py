@@ -129,20 +129,24 @@ def get_shower_segment(dt, shower, version=1, cover_full_cells=True):
         b = np.array(last_shower_cell.global_center)
 
     if version == 2:  # compute using max and min wire numbers
-        first_wire = shower.min_wire
-        last_wire = shower.max_wire
-        first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(first_wire)
-        last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(last_wire)
+        first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.min_wire)
+        last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.max_wire)
 
         a = np.array(first_shower_cell.global_center)
         b = np.array(last_shower_cell.global_center)
 
         if cover_full_cells:
-            half_cell = 4.2 / 2.0 # DT cell width in cm
-            # Determine the x-direction sign from a to b to expand correctly
-            sign = np.sign(b[0] - a[0]) if b[0] != a[0] else 1.0
-            a[0] -= sign * half_cell
-            b[0] += sign * half_cell
+            CELL_WIDTH_MM = 4.2  # DT cell width in cm
+            half_cell = CELL_WIDTH_MM / 2.0
+            ab = b - a
+            norm = np.linalg.norm(ab[:2])  # x-y plane only
+            if norm > 0:
+                unit = np.array([ab[0], ab[1], 0.0]) / norm
+            else:
+                unit = np.array([0.0, 0.0, 0.0])  # fallback: single cell
+
+            a = a - unit * half_cell
+            b = b + unit * half_cell
 
     return np.array([a, b])
 

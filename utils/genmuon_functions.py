@@ -45,7 +45,13 @@ def match_genmuon_offline_segment(gm: Particle, seg: Particle, max_dPhi: float, 
         append_to_matched_list(seg, 'matched_genmuons', gm)
 
 
-def analyze_genmuon_matches(ev: Event) -> None:
+def analyze_genmuon_matches(
+        ev: Event, gm2use: Optional[str] = "genmuons",
+        seg2use: Optional[str] = "segments",
+        tp2use: Optional[str] = "tps",
+        max_dPhi: Optional[float] = 0.1,
+        max_dEta: Optional[float] = 0.3
+        ) -> None:
     """
     Match generator muons to segments and TPs in a broad dPhi/dEta window.
     
@@ -54,31 +60,31 @@ def analyze_genmuon_matches(ev: Event) -> None:
     :return: None, modifies each genmuon, segment, and TP by adding matched objects to their lists
     :rtype: None
     """
-    if not hasattr(ev, "segments"):
+    if not hasattr(ev, seg2use):
         raise ValueError(
-            "Event does not have 'segments' they are required to analyze matches."
+            f"Event does not have '{seg2use}' they are required to analyze matches."
         )
-    if not hasattr(ev, "genmuons"):
+    if not hasattr(ev, gm2use):
         raise ValueError(
-            "Event does not have 'genmuons' they are required to analyze matches."
+            f"Event does not have '{gm2use}' they are required to analyze matches."
         )
-    if not hasattr(ev, "tps"):
+    if not hasattr(ev, tp2use):
         raise ValueError(
-            "Event does not have 'tps' they are required to analyze matches."
+            f"Event does not have '{tp2use}' they are required to analyze matches."
         )
 
-    for gm in ev.genmuons:
+    for gm in getattr(ev, gm2use):
         # Match segments to generator muons
-        for seg in ev.segments:
+        for seg in getattr(ev, seg2use):
             # gm.match_segment(seg, math.pi / 6., 0.8)\
-            match_genmuon_offline_segment(gm, seg, 0.1, 0.3)
+            match_genmuon_offline_segment(gm, seg, max_dPhi, max_dEta)
         # Now re-match with TPs
         for _seg in getattr(gm, 'matched_segments', []):
-            for tp in ev.tps:
-                match_offline_AMtp(_seg, tp, max_dPhi=0.1)
+            for tp in getattr(ev, tp2use):
+                match_offline_AMtp(_seg, tp, max_dPhi=max_dPhi)
 
 
-def analyze_genmuon_showers(ev: Event, method: Optional[int] = 1, simhits_threshold: Optional[int] = 8) -> None:
+def analyze_genmuon_showers(ev: Event, method: Optional[int] = 1, simhits_threshold: Optional[int] = 8, gm2use: Optional[str] = "genmuons", rs2use: Optional[str] = "realshowers") -> None:
     """
     Analyze if the generator muon showered based on matched segments.
     
@@ -91,18 +97,24 @@ def analyze_genmuon_showers(ev: Event, method: Optional[int] = 1, simhits_thresh
     :return: None, modifies each genmuon by adding showered attribute
     :rtype: None
     """
-    if not hasattr(ev, "genmuons"):
-        raise ValueError("Event does not have 'genmuons' they are required")
+    if not hasattr(ev, gm2use):
+        raise ValueError(f"Event does not have '{gm2use}' they are required")
+
+    if method in [1, 2] and not hasattr(ev, 'matched_segments'):
+        raise ValueError("Event does not have 'matched_segments' they are required")
+
+    if method == 3 and not hasattr(ev, rs2use):
+        raise ValueError(f"Event does not have '{rs2use}' they are required for method 3")
 
     if method == 1:
-        for gm in ev.genmuons:
+        for gm in getattr(ev, gm2use):
             matchs= getattr(gm, 'matched_segments', [])
             if len(matchs) != len(get_unique_locs(matchs, ("wh", "sc", "st"))):
                 # There's at least two matching segments in the same station for this muon
                 gm.showered = True
 
     if method == 2:
-        for gm in ev.genmuons:
+        for gm in getattr(ev, gm2use):
             locs = get_unique_locs(getattr(gm, 'matched_segments', []), ("wh", "sc", "st"))
             for wh, sc, st in locs:
                 simhits = ev.filter_particles("simhits", wh=wh, sc=sc, st=st)
@@ -111,11 +123,9 @@ def analyze_genmuon_showers(ev: Event, method: Optional[int] = 1, simhits_thresh
                     break
 
     if method == 3:
-        if not hasattr(ev, 'realshowers'):
-            raise ValueError("Event does not have 'realshowers' they are required for method 3")
-        for gm in ev.genmuons:
+        for gm in getattr(ev, gm2use):
             locs = get_unique_locs(getattr(gm, 'matched_segments', []), ("wh", "sc", "st"))
-            gm.showered = any(loc in locs for loc in get_unique_locs(ev.realshowers, loc_ids=["wh", "sc", "st"]))
+            gm.showered = any(loc in locs for loc in get_unique_locs(getattr(ev, rs2use, []), loc_ids=["wh", "sc", "st"]))
 
 
 def get_dphi_matched_segments(gm: Particle) -> List[float]:
