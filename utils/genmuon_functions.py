@@ -100,21 +100,15 @@ def analyze_genmuon_showers(ev: Event, method: Optional[int] = 1, simhits_thresh
     if not hasattr(ev, gm2use):
         raise ValueError(f"Event does not have '{gm2use}' they are required")
 
-    if method in [1, 2] and not hasattr(ev, 'matched_segments'):
-        raise ValueError("Event does not have 'matched_segments' they are required")
-
-    if method == 3 and not hasattr(ev, rs2use):
-        raise ValueError(f"Event does not have '{rs2use}' they are required for method 3")
-
     if method == 1:
-        for gm in getattr(ev, gm2use):
+        for gm in getattr(ev, gm2use, []):
             matchs= getattr(gm, 'matched_segments', [])
             if len(matchs) != len(get_unique_locs(matchs, ("wh", "sc", "st"))):
                 # There's at least two matching segments in the same station for this muon
                 gm.showered = True
 
     if method == 2:
-        for gm in getattr(ev, gm2use):
+        for gm in getattr(ev, gm2use, []):
             locs = get_unique_locs(getattr(gm, 'matched_segments', []), ("wh", "sc", "st"))
             for wh, sc, st in locs:
                 simhits = ev.filter_particles("simhits", wh=wh, sc=sc, st=st)
@@ -123,7 +117,7 @@ def analyze_genmuon_showers(ev: Event, method: Optional[int] = 1, simhits_thresh
                     break
 
     if method == 3:
-        for gm in getattr(ev, gm2use):
+        for gm in getattr(ev, gm2use, []):
             locs = get_unique_locs(getattr(gm, 'matched_segments', []), ("wh", "sc", "st"))
             gm.showered = any(loc in locs for loc in get_unique_locs(getattr(ev, rs2use, []), loc_ids=["wh", "sc", "st"]))
 

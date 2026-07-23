@@ -20,7 +20,7 @@ def match_offline_AMtp(segment: Particle, tp: Particle, max_dPhi: Optional[float
     :rtype: None
     """
     if any([not hasattr(segment, key) for key in ['wh', 'sc', 'st', 'phi']]):
-        raise AttributeError("Segment must have 'wh', 'sc', 'st', 'phi', and 'phires_conv' attributes.")
+        raise AttributeError("Segment must have 'wh', 'sc', 'st', 'phi', and attributes.")
     if any([not hasattr(tp, key) for key in ['wh', 'sc', 'st', 'phi', 'phires_conv', 'BX']]):
         raise AttributeError("Trigger primitive must have 'wh', 'sc', 'st', 'phi', 'phires_conv', and 'BX' attributes.")
 
@@ -84,5 +84,6 @@ def drop_duplicate_segments(event: Event, seg2use: Optional[str] = "segments") -
         if key not in seen:
             seen.add(key)
             unique_segments.append(seg)
+
     setattr(event, seg2use, unique_segments)
 

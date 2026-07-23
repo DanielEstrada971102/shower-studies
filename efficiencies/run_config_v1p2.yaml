@@ -1,0 +1,19 @@
+!include /lustrefs/L1T/dtntuples/ZprimeToMuMu_M-6000_PU200/v1p2-proc/roots/J/J.yaml
+
+histo_sources:
+  - histos_v1p2
+
+histo_names:
+  - showers_size_-*
+  - showers_nDigis_*
+  - showers_nShowers_*
+  - realshowers_nDigis_*
+  - realshowers_size_*
+  - realshowers_type_*
+  - realshowers_nShowers_*
+  - shower_tpfptnfn*
+  - showers_classification*
+  - shower_filter_highpt_tag_eff_all*
+  - showered_genmuon_meth1*
+
+plot_configs: !include ../yamls/plot_configs.yaml

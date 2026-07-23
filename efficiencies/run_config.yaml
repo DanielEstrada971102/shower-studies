@@ -1,7 +1,7 @@
 !include ../yamls/run_config_v0.yaml
 
 histo_sources:
-  - shower_histos
+  - histos_v1
 
 histo_names:
   # Histogram to fill - Uncomment or add histograms as needed. 

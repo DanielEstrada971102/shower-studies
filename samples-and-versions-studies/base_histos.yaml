@@ -1,0 +1,33 @@
+ntuple_tree_name: '/dtNtupleProducer/DTTREE'
+
+histo_sources:
+  - base_histos
+
+histo_names:
+  - gen_pt
+  - gen_eta
+  - gen_phi
+  - nshowers_wh*_st*
+  - nshowers_wh*_st*_noSL2
+  - nshowers_wh*_st*_goodBX
+  - nshowers_wh*_st*_goodBX_noSL2
+  - showerBx_wh*_st*
+  - showerNdigis_wh*_st*
+  - showerSize_wh*_st*
+  - nAMtps_phi_wh*_st*_q*
+  - nAMtps_phi_goodBX_wh*_st*_q*
+  - AMtps_superlayer_wh*_st*_q*
+  - AMtps_BX_wh*_st*_q*
+  - AMtps_phi_wh*_st*_q*
+  - AMtps_phiB_wh*_st*_q*
+  - AMtps_posLocx_wh*_st*_q*
+  - AMtps_dirLocphi_wh*_st*_q*
+  - AMtps_phiCMSSW_wh*_st*_q*
+  - AMtps_phiBCMSSW_wh*_st*_q*
+  - nAMtps_theta_wh*_st*_q*
+  - nAMtps_theta_goodBX_wh*_st*_q*
+  - AMtps_theta_z_wh*_st*_q*
+  - AMtps_theta_k_wh*_st*_q*
+  - AMtps_theta_BX_wh*_st*_q*
+  - AMtps_theta_zCMSSW_wh*_st*_q*
+  - AMtps_theta_kCMSSW_wh*_st*_q*

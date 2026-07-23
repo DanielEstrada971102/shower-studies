@@ -221,67 +221,67 @@ def wait_until_jobs_running(
 
 def main() -> int:
     DRY_RUN = False
-    RETRY = True
+    RETRY = False
     COMMAND = "dtpr dump-events"
-    OUTDIR = "results-campaign"
+    OUTDIR = "/lustrefs/L1T/dtntuples/MinBias_200PU/v1p2-proc"
     MAXEVENTS = -1
     # =========================
     # USER CONFIG - EDIT THIS
     # =========================
     vars = {
         "INPUTS": [
-            "/lustrefs/L1T/dtntuples/ZprimeToMuMu_M-6000_PU200/v2/",
+            "/lustrefs/L1T/dtntuples/MinBias_200PU/v1p2",
         ],
-        "CHUNK_SIZE": 9,
+        "CHUNK_SIZE": 84,
         "COMMAND": COMMAND,
     }
     CAMPAIGN = {
-        "old_sample$A": {
+        # "old_sample$A": {
+        #     "commit": "f64dc8617b2dea85dac69ac281fdc0c5d6bbb8f5",
+        #     "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _old_sample_A__TASK_ID__ -cf /nfs/fanae/user/destrada/Public/shower-studies/utils/yamls/A.yaml",
+        #     "vars": {
+        #         "INPUTS": [
+        #             "/lustrefs/L1T/dtntuples/ZprimeToMuMu_M-6000_PU200/v1/",
+        #         ],
+        #         "CHUNK_SIZE": 21,
+        #         "COMMAND": COMMAND,
+        #     },
+        # },
+        "sample$B": {
             "commit": "f64dc8617b2dea85dac69ac281fdc0c5d6bbb8f5",
-            "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _old_sample_A__TASK_ID__ -cf {OUTDIR}/yamls/A.yaml",
-            "vars": {
-                "INPUTS": [
-                    "/lustrefs/L1T/dtntuples/ZprimeToMuMu_M-6000_PU200/v1/",
-                ],
-                "CHUNK_SIZE": 21,
-                "COMMAND": COMMAND,
-            },
-        },
-        "new_sample$B": {
-            "commit": "f64dc8617b2dea85dac69ac281fdc0c5d6bbb8f5",
-            "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _B__TASK_ID__ -cf {OUTDIR}/yamls/B.yaml",
+            "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _B__TASK_ID__ -cf /nfs/fanae/user/destrada/Public/shower-studies/utils/yamls/B.yaml",
             "vars": vars
         },
         "$B+fix_tps_angle$C": {
             "commit": "640e6a2a4a526abb63793f389237c9505cb95504",
-            "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _C__TASK_ID__ -cf {OUTDIR}/yamls/C.yaml",
+            "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _C__TASK_ID__ -cf /nfs/fanae/user/destrada/Public/shower-studies/utils/yamls/C.yaml",
             "vars": vars
         },
-        "$C+using_jpshowers$D":{
-            "commit": "cf913ffa1ce8de16a7b5d9d209683cb3be3c3f5e",
-            "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _D__TASK_ID__ -cf {OUTDIR}/yamls/D.yaml",
-            "vars": vars
-        },
-        "$D+dnn$E":{
-            "commit": "cf913ffa1ce8de16a7b5d9d209683cb3be3c3f5e",
-            "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _E__TASK_ID__ -cf {OUTDIR}/yamls/E.yaml",
-            "vars": vars
-        },
-        "$E+fix_rs$F":{
-            "commit": "9c89973a855f0ccec59330a2e587644334d277c5",
-            "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _F__TASK_ID__ -cf {OUTDIR}/yamls/E.yaml",
-            "vars": vars
-        },
+        # "$C+using_jpshowers$D":{
+        #     "commit": "cf913ffa1ce8de16a7b5d9d209683cb3be3c3f5e",
+        #     "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _D__TASK_ID__ -cf /nfs/fanae/user/destrada/Public/shower-studies/utils/yamls/D.yaml",
+        #     "vars": vars
+        # },
+        # "$D+dnn$E":{
+        #     "commit": "cf913ffa1ce8de16a7b5d9d209683cb3be3c3f5e",
+        #     "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _E__TASK_ID__ -cf /nfs/fanae/user/destrada/Public/shower-studies/utils/yamls/E.yaml",
+        #     "vars": vars
+        # },
+        # "$E+fix_rs$F":{
+        #     "commit": "439ec54efeb1c0c9b61a61223ae07889ab4f1939",
+        #     "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _F__TASK_ID__ -cf /nfs/fanae/user/destrada/Public/shower-studies/utils/yamls/E.yaml",
+        #     "vars": vars
+        # },
         "$C+fix_rs$G":{
-            "commit": "9c89973a855f0ccec59330a2e587644334d277c5",
-            "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _G__TASK_ID__ -cf {OUTDIR}/yamls/G.yaml",
+            "commit": "439ec54efeb1c0c9b61a61223ae07889ab4f1939",
+            "args": f"--maxevents={MAXEVENTS} -o {OUTDIR}/roots/ --tag _G__TASK_ID__ -cf /nfs/fanae/user/destrada/Public/shower-studies/utils/yamls/G.yaml",
             "vars": vars
         },
     }
 
     repo = detect_repo_root(Path("."))
-    launcher_path = Path(repo, "./new_launch_cmd_on_chunks.sh")
-    report_dir = Path(repo, OUTDIR, "./campaign-reports")
+    launcher_path = Path(repo, "./utils/new_launch_cmd_on_chunks.sh")
+    report_dir = Path(OUTDIR, "./campaign-reports")
 
     if not launcher_path.exists():
         eprint(f"Launcher not found: {launcher_path}")
@@ -413,14 +413,14 @@ def main() -> int:
                     "mode": "slurm",
                     "args": profile_args,
                     "vars": var_overrides,
-                    "launcher_run_dir": str(run_log_dir.relative_to(repo)),
+                    "launcher_run_dir": str(run_log_dir.resolve()),
                     "launcher_run_id": run_id,
                     "status": status,
                     "returncode": returncode,
                     "started": started,
                     "ended": ended,
-                    "stdout_log": str(stdout_log.relative_to(repo)),
-                    "stderr_log": str(stderr_log.relative_to(repo)),
+                    "stdout_log": str(stdout_log.resolve()),
+                    "stderr_log": str(stderr_log.resolve()),
                 },
             )
 

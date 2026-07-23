@@ -1,18 +1,19 @@
 import warnings
-import gc
-import matplotlib.pyplot as plt
-from numpy import ceil, array, ndarray
+from numpy import array, ndarray
 from pandas import DataFrame
 from typing import Tuple, Optional, List, Union
 from collections import deque
 from dtpr.base import Event, Particle
 from dtpr.utils.functions import color_msg, get_unique_locs
+from mpldts.geometry.station import STATION_CACHE
 import numpy as np
 import torch
 import torch.nn as nn
 import os
 import joblib
 from sklearn.cluster import DBSCAN
+
+Station = STATION_CACHE.get
 
 
 def build_fwshowers(ev: Event, threshold: Optional[List[int]] = None, name: Optional[str] = "fwshowers",
@@ -462,7 +463,7 @@ def build_real_showers_by_clustering(
             _index = _realshowers_coll[-1].index + 1 if _realshowers_coll else 0
             
             _shower = Particle(index=_index, wh=wh, sc=sc, st=st, name="Shower") 
-            _shower.shower_type = 10  # ID para cluster denso (>= threshold)
+            _shower.shower_type = 0 # unique id 
             _shower.sl = sl
             _shower.nsimhits = 0      # Solo usamos digis
             _shower.ndigis = int(max_cluster_size)
@@ -675,3 +676,86 @@ def drop_showers_by_effective_nDigis(
             showers_to_keep.append(shower)
 
     setattr(ev, showers2use_name, showers_to_keep)
+
+# ---- Geometrical representation of a shower ----
+
+
+def get_shower_rectangle(shower, version=1):
+    """
+    Get the rectangle (polygon) representing the shower in CMS coordinates. Shower is not used
+    at the moment, but in theory it should be used to define the size of the rectangle.
+    """
+    #  D _________ C
+    #   |         |
+    #   |_________|
+    #  A           B
+    dt = Station(wh=shower.wh, sc=shower.sc, st=shower.st)
+    _x_center, _y_center, _z_center = dt.local_center
+    _width, _height, _ = dt.bounds
+
+    # build the rectangle
+    _rect = np.array([
+        # y component set to 0 -> 2D problem in ZX plane in local cords
+        [_x_center - _width / 2, 0, _z_center - _height / 2], # A
+        [_x_center + _width / 2, 0,  _z_center - _height / 2], # B
+        [_x_center + _width / 2, 0, _z_center + _height / 2], # C
+        [_x_center - _width / 2, 0, _z_center + _height / 2], # D
+        [_x_center - _width / 2, 0, _z_center - _height / 2] # A (to close the rectangle)
+    ])
+    # move the rectangle to the global coordinates
+    rect = dt.transformer.transform(_rect, from_frame="Station", to_frame="CMS")
+    return rect
+
+def get_shower_segment(shower, version=1, cover_full_cells=True):
+    """
+    Get the segment representing the shower in CMS coordinates.
+    """
+    # A (min_wire/q25) <-------------------> B (max_wire/q75)
+
+    dt = Station(wh=shower.wh, sc=shower.sc, st=shower.st)
+    if version == 1:  # compute using the wires profile
+        try:
+            wires = [wn for wn, nh in enumerate(shower.wires_profile) for _ in range(nh)]
+            q75, q25 = map(int, np.percentile(wires, [75, 25]))
+            wires = sorted([wire for wire in wires if wire >= q25 and wire <= q75])
+            wires[-1] = wires[-1] + 1 if wires[-1] == wires[0] else wires[-1]
+
+            first_wire = wires[0] if wires[0] >= dt.super_layer(shower.sl).layer(2)._first_cell_id else dt.super_layer(shower.sl).layer(2)._first_cell_id
+            last_wire = wires[-1] if wires[-1] <= dt.super_layer(shower.sl).layer(2)._last_cell_id else dt.super_layer(shower.sl).layer(2)._last_cell_id
+            first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(first_wire)
+            last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(last_wire)
+        except:
+            first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.min_wire)
+            last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.max_wire)
+
+        a = np.array(first_shower_cell.global_center)
+        b = np.array(last_shower_cell.global_center)
+
+    if version == 2:  # compute using max and min wire numbers
+        first_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.min_wire)
+        last_shower_cell = dt.super_layer(shower.sl).layer(2).cell(shower.max_wire)
+
+        a = np.array(first_shower_cell.global_center)
+        b = np.array(last_shower_cell.global_center)
+
+        if cover_full_cells: # if we want to cover the full cells, we need to extend the segment by half a cell width in both directions
+            CELL_WIDTH_MM = 4.2  # DT cell width in cm
+            half_cell = CELL_WIDTH_MM / 2.0
+            ab = b - a
+            if shower.sl == 2:
+                norm = abs(ab[2])  # rz plane: only z matters in this geometry
+                if norm > 0:
+                    unit = np.array([0.0, 0.0, ab[2] / norm])
+                else:
+                    unit = np.array([0.0, 0.0, 0.0])  # fallback: single cell
+            else:
+                norm = np.linalg.norm(ab[:2])  # x-y plane only
+                if norm > 0:
+                    unit = np.array([ab[0], ab[1], 0.0]) / norm
+                else:
+                    unit = np.array([0.0, 0.0, 0.0])  # fallback: single cell
+
+            a = a - unit * half_cell
+            b = b + unit * half_cell
+
+    return np.array([a, b])

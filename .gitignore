@@ -17,3 +17,4 @@ test/*.svg
 *logs*
 *results*
 !requirements.txt
+slice-test-data
